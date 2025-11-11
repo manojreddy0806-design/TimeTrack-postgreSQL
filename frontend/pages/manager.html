@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Manager Dashboard — TimeTrack</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+    <div class="navbar">
+        <div class="nav-left">
+            <div class="logo">⏰ TimeTrack</div>
+            <nav class="nav-links" id="managerNavLinks">
+                <a href="manager.html" id="dashboardLink">Dashboard</a>
+                <a href="add-employee.html" id="addEmployeeLink">Add Employee</a>
+                <a href="list-employees.html" id="listEmployeesLink">List Employees</a>
+            </nav>
+        </div>
+        <div class="nav-right">
+            <span id="viewingAsNotice" style="display:none;margin-right:16px;color:#6c757d;font-size:0.9rem;"></span>
+            <a href="super-admin.html" id="backToSuperAdmin" style="display:none;margin-right:16px;color:#007bff;text-decoration:none;font-weight:600;">← Back to Super Admin</a>
+            <a href="#" class="btn-logout" onclick="logoutApp()">Logout</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;margin-bottom:24px;">
+            <h2 style="margin:0" id="dashboardTitle">Manager Dashboard — Store Overview</h2>
+            <button id="addStoreBtn" onclick="handleAddStore()" style="background:#28a745;color:white;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:1rem;transition:all 0.2s ease;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#218838';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(40,167,69,0.3)'" onmouseout="this.style.background='#28a745';this.style.transform='none';this.style.boxShadow='none'">
+                <span style="font-size:1.1rem;">+</span> Add Store
+            </button>
+        </div>
+        <div id="managerRoot">
+            <div id="managerCards"></div>
+        </div>
+    </div>
+    
+    <!-- Add Store Modal -->
+    <div id="addStoreModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>➕ Add New Store</h3>
+                <button class="modal-close" onclick="closeAddStoreModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="addStoreError" class="modal-error"></div>
+                <form id="addStoreForm">
+                    <div class="modal-form-group">
+                        <label for="storeName">Store Name *</label>
+                        <input type="text" id="storeName" name="storeName" placeholder="Enter store name (e.g., Lawrence)" required autofocus>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="storeTotalBoxes">Total Boxes *</label>
+                        <input type="number" id="storeTotalBoxes" name="storeTotalBoxes" placeholder="Enter total boxes (positive integer)" min="1" step="1" required>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="storeUsername">Username *</label>
+                        <input type="text" id="storeUsername" name="storeUsername" placeholder="Enter username" required>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="storePassword">Password *</label>
+                        <input type="password" id="storePassword" name="storePassword" placeholder="Enter password" required>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="storeConfirmPassword">Confirm Password *</label>
+                        <input type="password" id="storeConfirmPassword" name="storeConfirmPassword" placeholder="Confirm password" required>
+                    </div>
+                </form>
+                <p style="margin-top:12px;color:#6c757d;font-size:0.9rem;">
+                    🔒 The store will be locked to the IP address you are using right now. Only users on that network will be able to log in with the store account.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn-secondary" onclick="closeAddStoreModal()">Cancel</button>
+                <button type="button" class="modal-btn modal-btn-primary" onclick="submitAddStore()">Add Store</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Store Modal -->
+    <div id="editStoreModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>✏️ Edit Store</h3>
+                <button class="modal-close" onclick="closeEditStoreModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="editStoreError" class="modal-error"></div>
+                <form id="editStoreForm">
+                    <input type="hidden" id="editStoreOriginalName" name="editStoreOriginalName">
+                    <div class="modal-form-group">
+                        <label for="editStoreName">Store Name *</label>
+                        <input type="text" id="editStoreName" name="editStoreName" placeholder="Enter store name" required autofocus>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editStoreTotalBoxes">Total Boxes *</label>
+                        <input type="number" id="editStoreTotalBoxes" name="editStoreTotalBoxes" placeholder="Enter total boxes (positive integer)" min="1" step="1" required>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editStoreUsername">Username *</label>
+                        <input type="text" id="editStoreUsername" name="editStoreUsername" placeholder="Enter username" required>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editStorePassword">Password *</label>
+                        <input type="password" id="editStorePassword" name="editStorePassword" placeholder="Enter password" required>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="editStoreConfirmPassword">Confirm Password *</label>
+                        <input type="password" id="editStoreConfirmPassword" name="editStoreConfirmPassword" placeholder="Confirm password" required>
+                    </div>
+                </form>
+                <p id="editStoreAllowedIpInfo" style="margin-top:12px;color:#6c757d;font-size:0.9rem;"></p>
+                <div class="modal-form-group" style="margin-top:12px;">
+                    <label style="display:flex;align-items:center;gap:8px;">
+                        <input type="checkbox" id="editStoreUseCurrentIp">
+                        Use my current IP address for this store's login
+                    </label>
+                    <small style="display:block;margin-top:4px;color:#6c757d;">When checked, the store's allowed IP will be updated to the network you're currently using.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn modal-btn-secondary" onclick="closeEditStoreModal()">Cancel</button>
+                <button type="button" class="modal-btn modal-btn-primary" onclick="submitEditStore()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="static/js/script.js"></script>
+</body>
+</html>

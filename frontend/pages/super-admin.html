@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Super Admin Dashboard — TimeTrack</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <style>
+        .managers-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .filter-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .filter-group {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-group label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .filter-group input {
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            min-width: 300px;
+        }
+        .managers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .manager-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .manager-card:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        .manager-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .manager-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            border: 3px solid #e9ecef;
+        }
+        .manager-info {
+            flex: 1;
+        }
+        .manager-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0 0 4px 0;
+        }
+        .manager-username {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        .manager-details {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e9ecef;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .detail-label {
+            color: #6c757d;
+            font-weight: 600;
+        }
+        .detail-value {
+            color: #2c3e50;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        .empty-state-text {
+            color: #6c757d;
+            font-size: 1.1rem;
+            margin-bottom: 24px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="nav-left">
+            <div class="logo">⏰ TimeTrack</div>
+            <nav class="nav-links">
+                <a href="super-admin.html" class="active">Dashboard</a>
+                <a href="add-manager.html">Add Manager</a>
+            </nav>
+        </div>
+        <div class="nav-right">
+            <a href="#" class="btn-logout" onclick="logoutApp()">Logout</a>
+        </div>
+    </div>
+    
+    <div class="managers-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; color: #2c3e50;">Super Admin Dashboard — All Managers</h2>
+            <a href="add-manager.html" class="btn btn-primary">+ Add Manager</a>
+        </div>
+        
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="searchInput">🔍 Search Manager:</label>
+                <input type="text" id="searchInput" placeholder="Type manager name or username to search...">
+            </div>
+        </div>
+        
+        <div id="loadingState" class="loading">
+            <p>Loading managers...</p>
+        </div>
+        
+        <div id="managersGrid" class="managers-grid" style="display: none;"></div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">👤</div>
+            <div class="empty-state-text">No managers found</div>
+            <a href="add-manager.html" class="btn btn-primary">Add Your First Manager</a>
+        </div>
+    </div>
+    
+    <script src="static/js/script.js"></script>
+    <script>
+        let allManagers = [];
+        
+        // Get initials from name
+        function getInitials(name) {
+            return name
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+        
+        // Load all managers
+        async function loadManagers() {
+            try {
+                document.getElementById('loadingState').style.display = 'block';
+                document.getElementById('managersGrid').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'none';
+                
+                allManagers = await apiGet('/managers/');
+                
+                renderManagers();
+                
+            } catch (err) {
+                console.error('Failed to load managers:', err);
+                document.getElementById('loadingState').innerHTML = '<p style="color: #dc3545;">Failed to load managers</p>';
+            }
+        }
+        
+        // Render managers
+        function renderManagers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            // Filter managers by search term
+            let filteredManagers = allManagers;
+            
+            if (searchTerm) {
+                filteredManagers = filteredManagers.filter(mgr => 
+                    (mgr.name && mgr.name.toLowerCase().includes(searchTerm)) ||
+                    (mgr.username && mgr.username.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            document.getElementById('loadingState').style.display = 'none';
+            
+            if (filteredManagers.length === 0) {
+                document.getElementById('managersGrid').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+            
+            const grid = document.getElementById('managersGrid');
+            grid.style.display = 'grid';
+            document.getElementById('emptyState').style.display = 'none';
+            
+            grid.innerHTML = filteredManagers.map(mgr => {
+                const initials = getInitials(mgr.name || mgr.username || 'M');
+                
+                return `
+                    <div class="manager-card" onclick="openManagerDashboard('${escapeHtml(mgr.username)}')">
+                        <div class="manager-header">
+                            <div class="manager-avatar">${initials}</div>
+                            <div class="manager-info">
+                                <h3 class="manager-name">${escapeHtml(mgr.name || 'Manager')}</h3>
+                                <p class="manager-username">@${escapeHtml(mgr.username)}</p>
+                            </div>
+                        </div>
+                    
+                        <div class="manager-details">
+                            <div class="detail-row">
+                                <span class="detail-label">👤 Username:</span>
+                                <span class="detail-value">${escapeHtml(mgr.username)}</span>
+                            </div>
+                        </div>
+                    
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9ecef;" onclick="event.stopPropagation();">
+                            <button onclick="editManager('${escapeHtml(mgr.username)}', '${escapeHtml(mgr.name || '')}')" 
+                                    style="width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease; margin-bottom: 8px;"
+                                    onmouseover="this.style.background='#0056b3'" 
+                                    onmouseout="this.style.background='#007bff'">
+                                ✏️ Edit Manager
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Open manager dashboard (as super-admin view)
+        window.openManagerDashboard = function(managerUsername) {
+            // Save the manager username in session temporarily for viewing their dashboard
+            const session = loadSession();
+            if (session && session.role === 'super-admin') {
+                // Redirect to manager.html with a query parameter
+                window.location = `manager.html?view_as=${encodeURIComponent(managerUsername)}`;
+            }
+        };
+        
+        // Edit manager
+        window.editManager = async function(managerUsername, managerName) {
+            // Redirect to edit manager page
+            window.location = `add-manager.html?edit=${encodeURIComponent(managerUsername)}`;
+        };
+        
+        // Search input handler
+        document.getElementById('searchInput').addEventListener('input', renderManagers);
+        
+        // Check session
+        const session = loadSession();
+        if (!session || session.role !== 'super-admin') {
+            window.location = 'index.html';
+        }
+        
+        // Load data on page load
+        loadManagers();
+    </script>
+</body>
+</html>
+

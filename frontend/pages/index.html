@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>TimeTrack — Login</title>
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="login-container" id="loginForm">
+            <div class="login-logo">⏰ TimeTrack</div>
+            <div class="small" style="margin-bottom:12px">Store or Manager Login</div>
+            <div class="form-group"><label>Username</label><input id="username"
+                    placeholder="Enter username"></div>
+            <div class="form-group"><label>Password</label><input id="password" type="password"
+                    placeholder="Enter password"></div>
+            <div style="font-size:0.85rem;color:#6c757d;margin:4px 0 16px 0;padding:0 4px;">
+                💡 <strong>Store login:</strong> Allowed only from the network you used when the store was created. Make sure you are connecting from the same IP address. <strong>Manager login:</strong> Only username and password are required.
+            </div>
+            <button id="loginBtn" class="login-btn">🔐 Login</button>
+            <div id="loginMessage" class="message" style="display:none"></div>
+        </div>
+    </div>
+    <script src="static/js/script.js"></script>
+</body>
+
+</html>
