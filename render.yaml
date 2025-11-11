@@ -1,8 +1,9 @@
 services:
   - type: web
     name: my-flask-app
-    env: python      
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn "app:create_app()"
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r ../requirements.txt
+    startCommand: gunicorn "backend.app:create_app()"
     envVars:
       PYTHON_VERSION: 3.12.6
