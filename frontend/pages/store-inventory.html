@@ -4,8 +4,43 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Store Inventory Management — TimeTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/css/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3B82F6',
+                            hover: '#2563EB'
+                        },
+                        secondary: '#64748B',
+                        light: '#F8FAFC',
+                        'card-border': '#E2E8F0',
+                        'input-border': '#CBD5E1'
+                    }
+                }
+            }
+        };
+    </script>
     <style>
+        ::-webkit-scrollbar { display: none; }
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .page-fade-in {
+            animation: fadeInPage 0.6s ease forwards;
+        }
         .inventory-table-container {
             overflow-x: auto;
             margin-top: 20px;
@@ -38,47 +73,86 @@
         }
     </style>
 </head>
-<body>
-    <div class="navbar">
-        <div class="nav-left">
-            <div class="logo">⏰ TimeTrack</div>
-            <nav class="nav-links">
-                <a href="manager.html">Manager Dashboard</a>
-            </nav>
-        </div>
-        <div class="nav-right">
-            <a href="super-admin.html" id="backToSuperAdmin" class="btn-logout" style="display:none; margin-right: 12px;">
-                ← Back to Super Admin
-            </a>
-            <a href="#" class="btn-logout" onclick="logoutApp()">Logout</a>
-        </div>
-    </div>
-    <div class="container">
-        <div id="inventoryRoot">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <h2 id="storeTitle" style="margin:0;">📦 Inventory Management</h2>
-                <button id="backBtn" class="bulk-update-btn" style="background:#6c757d">← Back to Manager</button>
+<body class="bg-light font-sans antialiased text-slate-800">
+    <div id="app-container" class="min-h-screen pb-12">
+        <header id="header" class="sticky top-0 z-50 w-full">
+            <div class="w-[95%] max-w-7xl mx-auto mt-4 bg-gradient-to-r from-blue-600 to-blue-700 backdrop-blur-xl rounded-2xl shadow-2xl border border-blue-400/30">
+                <div class="flex items-center justify-between px-10 py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white rounded-xl p-2.5 flex items-center justify-center hover:scale-110 transition-transform duration-200 shadow-lg">
+                            <i class="fa-solid fa-clock text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-white">TimeTrack</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <nav class="hidden md:flex items-center space-x-3 bg-blue-700/20 px-3 py-2 rounded-xl backdrop-blur-sm">
+                            <a href="manager.html" class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-chart-pie mr-2"></i>
+                                Manager Dashboard
+                            </a>
+                        </nav>
+                        <a href="super-admin.html" id="backToSuperAdmin" class="hidden items-center px-4 py-2 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 mr-4">
+                            <i class="fa-solid fa-arrow-left mr-2"></i>
+                            Back to Super Admin
+                        </a>
+                        <button class="hidden md:flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform border border-white/20" onclick="logoutApp()">
+                            <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>
+                            Logout
+                        </button>
+                        <button class="md:hidden text-white hover:text-blue-200 transition-colors duration-200">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div style="margin-top:8px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                <button id="addItemBtn" class="stage-btn" style="background:#6f42c1" onclick="window.openAddItemModal(); return false;">➕ Add Item</button>
-                <input id="inventorySearch" placeholder="Search items (name or SKU)" style="flex:1;min-width:240px;padding:10px;border:2px solid #e1e5e9;border-radius:8px" />
+        </header>
+
+        <main id="main-content" class="page-fade-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12">
+            <div class="mb-8 bg-gradient-to-r from-slate-50 to-blue-50 p-8 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="bg-gradient-to-br from-purple-600 to-purple-700 p-4 rounded-2xl shadow-lg">
+                        <i class="fa-solid fa-boxes text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 id="storeTitle" class="text-3xl font-bold text-slate-900 mb-2">Inventory Management</h1>
+                        <p class="text-slate-600">Manage inventory items and quantities for this store</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <button id="backBtn" class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 hover:shadow-lg hover:scale-105 transition-all duration-200">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Back to Manager
+                </button>
+            </div>
+
+            <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center">
+                <button id="addItemBtn" class="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg hover:from-purple-700 hover:to-purple-800 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm" onclick="window.openAddItemModal(); return false;">
+                    <i class="fa-solid fa-plus"></i>
+                    Add Item
+                </button>
+                <input id="inventorySearch" placeholder="Search items (name or SKU)" class="flex-1 px-5 py-3 text-base bg-white border-2 border-slate-300 rounded-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-600 focus:bg-white focus:shadow-lg transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 hover:shadow-sm min-w-0" />
             </div>
             
-            <div class="inventory-table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Device Name</th>
-                            <th>SKU</th>
-                            <th>Current Qty</th>
-                            <th>Stage</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTableBody"></tbody>
-                </table>
+            <div class="bg-white rounded-xl border border-card-border shadow-sm overflow-hidden">
+                <div class="inventory-table-container">
+                    <table class="table w-full">
+                        <thead>
+                            <tr class="bg-slate-50">
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Device Name</th>
+                                <th class="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">SKU</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Current Qty</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Stage</th>
+                                <th class="px-6 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody" class="bg-white divide-y divide-slate-200">
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        </main>
     </div>
     
     <!-- Edit Item Modal -->

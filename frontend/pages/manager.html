@@ -51,113 +51,148 @@
             background-color: rgba(59, 130, 246, 0.5) !important;
         }
         .modal-overlay {
-            display: none;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
+            display: none;
             align-items: center;
             justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
         }
         .modal-overlay.show {
             display: flex;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
         .modal-container {
             background: white;
-            border-radius: 1rem;
-            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             width: 90%;
+            max-width: 600px;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
         .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #E2E8F0;
+            background: linear-gradient(to right, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 20px 24px;
+            border-radius: 12px 12px 0 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .modal-close {
-            background: none;
-            border: none;
+        .modal-header h3 {
+            margin: 0;
             font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
             cursor: pointer;
-            color: #64748B;
-            padding: 0.5rem;
-            line-height: 1;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
         }
         .modal-close:hover {
-            color: #1E293B;
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
         }
         .modal-body {
-            padding: 1.5rem;
+            padding: 24px;
         }
         .modal-form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 20px;
         }
         .modal-form-group label {
             display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
             font-weight: 600;
-            color: #1E293B;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+            font-size: 0.95rem;
         }
         .modal-form-group input {
             width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #CBD5E1;
-            border-radius: 0.5rem;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
             font-size: 1rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
         }
         .modal-form-group input:focus {
             outline: none;
-            border-color: #3B82F6;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
         .modal-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
             display: none;
-            background: #FEE2E2;
-            color: #991B1B;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
-            font-size: 0.875rem;
+            font-size: 0.9rem;
         }
         .modal-error.show {
             display: block;
         }
         .modal-footer {
-            padding: 1.5rem;
-            border-top: 1px solid #E2E8F0;
+            padding: 16px 24px;
+            border-top: 1px solid #e9ecef;
             display: flex;
+            gap: 12px;
             justify-content: flex-end;
-            gap: 0.75rem;
         }
         .modal-btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            cursor: pointer;
+            padding: 10px 24px;
             border: none;
-            transition: all 0.2s;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s ease;
         }
         .modal-btn-primary {
-            background: #3B82F6;
+            background: linear-gradient(to right, #2563eb, #1d4ed8);
             color: white;
         }
         .modal-btn-primary:hover {
-            background: #2563EB;
+            background: linear-gradient(to right, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
         .modal-btn-secondary {
-            background: #F1F5F9;
-            color: #475569;
+            background: #6c757d;
+            color: white;
         }
         .modal-btn-secondary:hover {
-            background: #E2E8F0;
+            background: #5a6268;
         }
         .store-card-details.expanded {
             max-height: 3000px !important;
@@ -225,30 +260,30 @@
     <div id="addStoreModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3 class="text-xl font-bold text-slate-900">➕ Add New Store</h3>
+                <h3>➕ Add New Store</h3>
                 <button class="modal-close" onclick="closeAddStoreModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="addStoreError" class="modal-error"></div>
                 <form id="addStoreForm">
                     <div class="modal-form-group">
-                        <label for="storeName">Store Name <span class="text-red-500">*</span></label>
+                        <label for="storeName">Store Name <span style="color: #dc3545;">*</span></label>
                         <input type="text" id="storeName" name="storeName" placeholder="Enter store name (e.g., Lawrence)" required autofocus>
                     </div>
                     <div class="modal-form-group">
-                        <label for="storeTotalBoxes">Total Boxes <span class="text-red-500">*</span></label>
+                        <label for="storeTotalBoxes">Total Boxes <span style="color: #dc3545;">*</span></label>
                         <input type="number" id="storeTotalBoxes" name="storeTotalBoxes" placeholder="Enter total boxes (positive integer)" min="1" step="1" required>
                     </div>
                     <div class="modal-form-group">
-                        <label for="storeUsername">Username <span class="text-red-500">*</span></label>
+                        <label for="storeUsername">Username <span style="color: #dc3545;">*</span></label>
                         <input type="text" id="storeUsername" name="storeUsername" placeholder="Enter username" required>
                     </div>
                     <div class="modal-form-group">
-                        <label for="storePassword">Password <span class="text-red-500">*</span></label>
+                        <label for="storePassword">Password <span style="color: #dc3545;">*</span></label>
                         <input type="password" id="storePassword" name="storePassword" placeholder="Enter password" required>
                     </div>
                     <div class="modal-form-group">
-                        <label for="storeConfirmPassword">Confirm Password <span class="text-red-500">*</span></label>
+                        <label for="storeConfirmPassword">Confirm Password <span style="color: #dc3545;">*</span></label>
                         <input type="password" id="storeConfirmPassword" name="storeConfirmPassword" placeholder="Confirm password" required>
                     </div>
                 </form>
@@ -268,7 +303,7 @@
     <div id="editStoreModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3 class="text-xl font-bold text-slate-900">✏️ Edit Store</h3>
+                <h3>✏️ Edit Store</h3>
                 <button class="modal-close" onclick="closeEditStoreModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -276,23 +311,23 @@
                 <form id="editStoreForm">
                     <input type="hidden" id="editStoreOriginalName" name="editStoreOriginalName">
                     <div class="modal-form-group">
-                        <label for="editStoreName">Store Name <span class="text-red-500">*</span></label>
+                        <label for="editStoreName">Store Name <span style="color: #dc3545;">*</span></label>
                         <input type="text" id="editStoreName" name="editStoreName" placeholder="Enter store name" required autofocus>
                     </div>
                     <div class="modal-form-group">
-                        <label for="editStoreTotalBoxes">Total Boxes <span class="text-red-500">*</span></label>
+                        <label for="editStoreTotalBoxes">Total Boxes <span style="color: #dc3545;">*</span></label>
                         <input type="number" id="editStoreTotalBoxes" name="editStoreTotalBoxes" placeholder="Enter total boxes (positive integer)" min="1" step="1" required>
                     </div>
                     <div class="modal-form-group">
-                        <label for="editStoreUsername">Username <span class="text-red-500">*</span></label>
+                        <label for="editStoreUsername">Username <span style="color: #dc3545;">*</span></label>
                         <input type="text" id="editStoreUsername" name="editStoreUsername" placeholder="Enter username" required>
                     </div>
                     <div class="modal-form-group">
-                        <label for="editStorePassword">Password <span class="text-red-500">*</span></label>
+                        <label for="editStorePassword">Password <span style="color: #dc3545;">*</span></label>
                         <input type="password" id="editStorePassword" name="editStorePassword" placeholder="Enter password" required>
                     </div>
                     <div class="modal-form-group">
-                        <label for="editStoreConfirmPassword">Confirm Password <span class="text-red-500">*</span></label>
+                        <label for="editStoreConfirmPassword">Confirm Password <span style="color: #dc3545;">*</span></label>
                         <input type="password" id="editStoreConfirmPassword" name="editStoreConfirmPassword" placeholder="Confirm password" required>
                     </div>
                 </form>

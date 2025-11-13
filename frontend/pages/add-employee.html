@@ -145,7 +145,7 @@
                         </div>
                         <div>
                             <label for="employeePhone" class="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
-                            <input type="tel" id="employeePhone" name="employeePhone" placeholder="+1 (555) 123-4567" class="block w-full px-4 py-2 text-sm bg-slate-50 border border-input-border rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all duration-300 hover:border-slate-400 hover:shadow-md focus:shadow-lg focus:scale-[1.01]">
+                            <input type="text" id="employeePhone" name="employeePhone" placeholder="Enter phone number (digits only)" inputmode="numeric" pattern="[0-9]*" class="block w-full px-4 py-2 text-sm bg-slate-50 border border-input-border rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all duration-300 hover:border-slate-400 hover:shadow-md focus:shadow-lg focus:scale-[1.01]">
                         </div>
                         <div>
                             <label for="employeeHourlyPay" class="block text-sm font-medium text-slate-700 mb-1">Hourly Pay Rate</label>
@@ -382,6 +382,31 @@
 
             toggleStatus('Camera stopped.', 'info');
         });
+
+        // Restrict phone number input to integers only
+        const employeePhoneInput = document.getElementById('employeePhone');
+        if (employeePhoneInput) {
+            employeePhoneInput.addEventListener('input', function(e) {
+                // Remove any non-digit characters
+                this.value = this.value.replace(/\D/g, '');
+            });
+            
+            // Prevent paste of non-numeric characters
+            employeePhoneInput.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                const numbersOnly = paste.replace(/\D/g, '');
+                this.value = numbersOnly;
+            });
+            
+            // Prevent non-numeric keypresses
+            employeePhoneInput.addEventListener('keypress', function(e) {
+                const char = String.fromCharCode(e.which);
+                if (!/[0-9]/.test(char)) {
+                    e.preventDefault();
+                }
+            });
+        }
 
         document.getElementById('addEmployeeForm').addEventListener('submit', async (e) => {
             e.preventDefault();

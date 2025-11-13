@@ -1386,7 +1386,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <i class="fa-solid fa-boxes text-blue-600 text-lg"></i>
                     <h4 class="text-lg font-bold text-slate-900">Inventory Preview</h4>
                   </div>
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="inv-grid-${storeId.replace(/\s/g, '-')}">
+                  <div class="grid grid-cols-2 gap-3" id="inv-grid-${storeId.replace(/\s/g, '-')}">
                     <div class="text-center py-4 text-slate-500">Loading inventory...</div>
                   </div>
                 </div>
@@ -1546,19 +1546,34 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (inventory.length === 0) {
               invGrid.innerHTML = '<div class="text-center py-6 text-slate-500 bg-slate-50 rounded-lg col-span-full">No inventory items</div>';
             } else {
-              const topItems = inventory.slice(0, 8);
-              invGrid.innerHTML = topItems.map(item => {
+              // Calculate totals for phones and simcards
+              let phonesTotal = 0;
+              let simcardsTotal = 0;
+              
+              inventory.forEach(item => {
                 const qty = item.quantity || 0;
-                let qtyBg = 'bg-emerald-100 text-emerald-800';
-                if (qty === 0) qtyBg = 'bg-red-100 text-red-800';
-                else if (qty <= 3) qtyBg = 'bg-amber-100 text-amber-800';
-                return `
-                  <div class="bg-white p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
-                    <div class="text-sm font-medium text-slate-900 mb-2 truncate">${escapeHtml(item.name)}</div>
-                    <div class="text-2xl font-bold ${qtyBg} px-3 py-1 rounded-lg text-center">${qty}</div>
-                  </div>
-                `;
-              }).join('');
+                const nameLower = (item.name || '').toLowerCase();
+                const skuLower = (item.sku || '').toLowerCase();
+                // Check both name and SKU for simcards
+                if (nameLower.includes('sim') || nameLower.includes('simcard') || 
+                    skuLower.includes('sim') || skuLower.includes('simcard')) {
+                  simcardsTotal += qty;
+                } else {
+                  phonesTotal += qty;
+                }
+              });
+              
+              // Display only phones and simcards totals
+              invGrid.innerHTML = `
+                <div class="bg-white p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                  <div class="text-sm font-medium text-slate-900 mb-2">Phones</div>
+                  <div class="text-2xl font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg text-center">${phonesTotal}</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                  <div class="text-sm font-medium text-slate-900 mb-2">Simcards</div>
+                  <div class="text-2xl font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-lg text-center">${simcardsTotal}</div>
+                </div>
+              `;
             }
             const totalQty = inventory.reduce((sum, item) => sum + (item.quantity || 0), 0);
             
@@ -1678,9 +1693,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const storeName = urlParams.get("store") || "Store";
     const viewAs = urlParams.get("view_as");
     
-    // Show "Back to Super Admin" button if view_as is present
-    if (backToSuperAdmin && viewAs && session?.role === 'super-admin') {
-      backToSuperAdmin.style.display = "flex";
+    // Show "Back to Super Admin" button only if user is super-admin AND view_as is present
+    if (backToSuperAdmin) {
+      if (viewAs && session?.role === 'super-admin') {
+        backToSuperAdmin.classList.remove("hidden");
+        backToSuperAdmin.classList.add("md:flex");
+      } else {
+        backToSuperAdmin.classList.add("hidden");
+        backToSuperAdmin.classList.remove("md:flex");
+      }
     }
     
     // Update title
@@ -1847,9 +1868,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     const reportDate = urlParams.get("date");
     const viewAs = urlParams.get("view_as");
     
-    // Show "Back to Super Admin" button if view_as is present
-    if (backToSuperAdmin && viewAs && session?.role === 'super-admin') {
-      backToSuperAdmin.style.display = "flex";
+    // Show "Back to Super Admin" button only if user is super-admin AND view_as is present
+    if (backToSuperAdmin) {
+      if (viewAs && session?.role === 'super-admin') {
+        backToSuperAdmin.classList.remove("hidden");
+        backToSuperAdmin.classList.add("md:flex");
+      } else {
+        backToSuperAdmin.classList.add("hidden");
+        backToSuperAdmin.classList.remove("md:flex");
+      }
     }
     
     // Update title
@@ -2032,9 +2059,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const backBtn = qs("backBtn");
     const backToSuperAdmin = qs("backToSuperAdmin");
     
-    // Show "Back to Super Admin" button if view_as is present
-    if (backToSuperAdmin && viewAs && session?.role === 'super-admin') {
-      backToSuperAdmin.style.display = "inline-block";
+    // Show "Back to Super Admin" button only if user is super-admin AND view_as is present
+    if (backToSuperAdmin) {
+      if (viewAs && session?.role === 'super-admin') {
+        backToSuperAdmin.style.display = "inline-block";
+      } else {
+        backToSuperAdmin.style.display = "none";
+      }
     }
     
     // Update title
@@ -2068,7 +2099,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         inventoryTableBody.innerHTML = "";
         if (displayItems.length === 0) {
-          inventoryTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#6c757d;">No inventory items found</td></tr>';
+          inventoryTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-slate-500 text-sm">No inventory items found</td></tr>';
           return;
         }
         
@@ -2092,16 +2123,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Manager view: show all buttons (Update, Edit, Remove)
         displayItems.forEach(item => {
           const tr = document.createElement("tr");
+          tr.className = "hover:bg-slate-50 transition-colors";
           const itemId = item._id || item.id || '';
           tr.innerHTML = `
-            <td>${escapeHtml(item.name || '')}</td>
-            <td>${escapeHtml(item.sku || '')}</td>
-            <td>${item.quantity || 0}</td>
-            <td><input type="number" class="stage-input" value="${item.quantity || 0}" data-item-id="${escapeHtml(itemId)}" data-item-sku="${escapeHtml(item.sku || '')}" data-item-name="${escapeHtml(item.name || '')}" /></td>
-            <td style="display:flex;gap:8px;">
-              <button class="stage-btn" onclick="handleUpdateInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}')">Update</button>
-              <button class="stage-btn" onclick="handleEditInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}', '${escapeHtml(item.name || '')}')" style="background:#ffc107;color:#000;">Edit</button>
-              <button class="stage-btn" onclick="handleRemoveInventoryItem('${escapeHtml(item.sku || '')}', '${escapeHtml(item.name || '')}')" style="background:#dc3545;">Remove</button>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">${escapeHtml(item.name || '')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${escapeHtml(item.sku || '')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-slate-900 font-medium">${item.quantity || 0}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-center"><input type="number" class="stage-input" value="${item.quantity || 0}" data-item-id="${escapeHtml(itemId)}" data-item-sku="${escapeHtml(item.sku || '')}" data-item-name="${escapeHtml(item.name || '')}" /></td>
+            <td class="px-6 py-4 whitespace-nowrap text-center">
+              <div class="flex items-center justify-center gap-2">
+                <button class="stage-btn" onclick="handleUpdateInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}')">Update</button>
+                <button class="stage-btn" onclick="handleEditInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}', '${escapeHtml(item.name || '')}')" style="background:#ffc107;color:#000;">Edit</button>
+                <button class="stage-btn" onclick="handleRemoveInventoryItem('${escapeHtml(item.sku || '')}', '${escapeHtml(item.name || '')}')" style="background:#dc3545;">Remove</button>
+              </div>
             </td>
           `;
           inventoryTableBody.appendChild(tr);

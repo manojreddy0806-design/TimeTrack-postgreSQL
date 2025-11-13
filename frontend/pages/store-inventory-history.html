@@ -123,7 +123,7 @@
                                 Manager Dashboard
                             </a>
                         </nav>
-                        <a href="super-admin.html" id="backToSuperAdmin" class="hidden md:flex items-center px-4 py-2 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 mr-4">
+                        <a href="super-admin.html" id="backToSuperAdmin" class="hidden items-center px-4 py-2 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 mr-4">
                             <i class="fa-solid fa-arrow-left mr-2"></i>
                             Back to Super Admin
                         </a>
@@ -198,10 +198,16 @@
         const storeName = urlParams.get('store') || 'Store';
         const viewAs = urlParams.get('view_as');
         
-        // Show "Back to Super Admin" button if view_as is present
+        // Show "Back to Super Admin" button only if user is super-admin AND view_as is present
         const backToSuperAdmin = document.getElementById('backToSuperAdmin');
-        if (backToSuperAdmin && viewAs && session?.role === 'super-admin') {
-            backToSuperAdmin.style.display = "flex";
+        if (backToSuperAdmin) {
+            if (viewAs && session?.role === 'super-admin') {
+                backToSuperAdmin.classList.remove("hidden");
+                backToSuperAdmin.classList.add("md:flex");
+            } else {
+                backToSuperAdmin.classList.add("hidden");
+                backToSuperAdmin.classList.remove("md:flex");
+            }
         }
         
         // Update title
