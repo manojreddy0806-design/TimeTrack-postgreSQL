@@ -61,8 +61,7 @@
         .stage-input:focus {
             outline: none;
             border-color: #3B82F6;
-            ring: 2px;
-            ring-color: rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
         .special-row {
             background: #FEF9C3;
@@ -144,8 +143,7 @@
         .modal-form-group input:focus {
             outline: none;
             border-color: #3B82F6;
-            ring: 4px;
-            ring-color: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
         }
         .modal-error {
             display: none;
@@ -241,7 +239,7 @@
                     </h2>
                     <div class="flex flex-col lg:flex-row gap-4 items-center">
                         <button id="addItemBtn" class="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg hover:from-purple-700 hover:to-purple-800 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm" onclick="window.openAddItemModal(); return false;">
-                            <i class="fa-solid fa-plus"></i>
+                            
                             Add Item
                         </button>
                         <input id="inventorySearch" placeholder="Search items (name or SKU)" class="flex-1 px-5 py-3 text-base bg-white border border-input-border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary focus:shadow-lg transition-all duration-300 hover:border-slate-400 min-w-0" />
@@ -304,7 +302,7 @@
     <div id="addItemModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3 class="text-xl font-bold text-slate-900">➕ Add New Item</h3>
+                <h3 class="text-xl font-bold text-slate-900">Add New Item</h3>
                 <button class="modal-close" onclick="closeAddItemModal()">&times;</button>
             </div>
             <div class="modal-body">

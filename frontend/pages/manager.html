@@ -135,20 +135,33 @@
             color: #2c3e50;
             font-weight: 600;
             font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        .modal-form-group:focus-within label {
+            transform: translateX(2px);
+            color: #2563eb;
         }
         .modal-form-group input {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid #e1e5e9;
+            border: 2px solid #CBD5E1;
             border-radius: 8px;
             font-size: 1rem;
-            transition: all 0.2s ease;
+            background: #F8FAFC;
+            transition: all 0.3s ease;
             box-sizing: border-box;
+            transform-origin: center;
+        }
+        .modal-form-group input:hover {
+            border-color: #94A3B8;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         .modal-form-group input:focus {
             outline: none;
             border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1), 0 10px 25px -5px rgba(37, 99, 235, 0.2);
+            transform: translateY(-2px) scale(1.02);
         }
         .modal-error {
             background: #f8d7da;
@@ -245,7 +258,6 @@
             <div class="flex items-center justify-between mb-8">
                 <h1 id="dashboardTitle" class="text-3xl font-bold text-slate-900">Manager Dashboard — Store Overview</h1>
                 <button id="addStoreBtn" onclick="handleAddStore()" class="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-lg hover:from-emerald-600 hover:to-emerald-700 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm">
-                    <i class="fa-solid fa-plus"></i>
                     Add Store
                 </button>
             </div>
@@ -260,7 +272,7 @@
     <div id="addStoreModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3>➕ Add New Store</h3>
+                <h3>Add New Store</h3>
                 <button class="modal-close" onclick="closeAddStoreModal()">&times;</button>
             </div>
             <div class="modal-body">

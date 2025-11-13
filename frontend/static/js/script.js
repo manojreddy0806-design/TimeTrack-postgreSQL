@@ -2070,7 +2070,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     // Update title
     if (storeTitle) {
-      storeTitle.textContent = `📦 Inventory Management — ${storeName}`;
+      storeTitle.textContent = `Inventory Management — ${storeName}`;
     }
     
     // Back button - preserve view_as if super-admin

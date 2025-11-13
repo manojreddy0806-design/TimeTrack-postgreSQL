@@ -129,7 +129,6 @@
 
             <div class="mb-6 flex flex-col sm:flex-row gap-4 items-center">
                 <button id="addItemBtn" class="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg hover:from-purple-700 hover:to-purple-800 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm" onclick="window.openAddItemModal(); return false;">
-                    <i class="fa-solid fa-plus"></i>
                     Add Item
                 </button>
                 <input id="inventorySearch" placeholder="Search items (name or SKU)" class="flex-1 px-5 py-3 text-base bg-white border-2 border-slate-300 rounded-lg focus:ring-4 focus:ring-blue-500/20 focus:border-blue-600 focus:bg-white focus:shadow-lg transition-all duration-200 placeholder:text-slate-400 hover:border-slate-400 hover:shadow-sm min-w-0" />
@@ -187,7 +186,7 @@
     <div id="addItemModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h3>➕ Add New Item</h3>
+                <h3>Add New Item</h3>
                 <button class="modal-close" onclick="closeAddItemModal()">&times;</button>
             </div>
             <div class="modal-body">
