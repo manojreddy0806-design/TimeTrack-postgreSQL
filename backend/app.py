@@ -80,6 +80,11 @@ def create_app():
     def health():
         return {"status": "ok"}
     
+    # Serve favicon to prevent 404 errors
+    @app.get("/favicon.ico")
+    def favicon():
+        return "", 204  # No Content - prevents 404 but doesn't serve a file
+    
     # Debug routes removed for production security
     # To enable debug routes, only do so in development environment
     import os

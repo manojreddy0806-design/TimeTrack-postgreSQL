@@ -913,6 +913,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     window.renderInventory = async function() {
       try {
+        // Show loading state immediately
+        if (inventoryTableBody) {
+          inventoryTableBody.innerHTML = `
+            <tr>
+              <td colspan="5" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center justify-center">
+                  <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-3"></div>
+                  <p class="text-slate-600 font-medium">Loading inventory...</p>
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+        
         const items = await loadInventory(session.storeId);
         if (!inventoryTableBody) return;
         
@@ -929,7 +943,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         inventoryTableBody.innerHTML = "";
         if (displayItems.length === 0) {
-          inventoryTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#6c757d;">No inventory items found</td></tr>';
+          inventoryTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">No inventory items found</td></tr>';
           return;
         }
         
@@ -958,20 +972,34 @@ document.addEventListener("DOMContentLoaded", async () => {
           // For employees: only show Update button. For managers: show all buttons.
           const actionButtons = isManager 
             ? `
-              <button class="stage-btn" onclick="handleUpdateInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}')">Update</button>
-              <button class="stage-btn" onclick="handleEditInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}', '${escapeHtml(item.name || '')}')" style="background:#ffc107;color:#000;">Edit</button>
-              <button class="stage-btn" onclick="handleRemoveInventoryItem('${escapeHtml(item.sku || '')}', '${escapeHtml(item.name || '')}')" style="background:#dc3545;">Remove</button>
+              <button class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-md hover:scale-105 transition-all duration-200 shadow-sm" onclick="handleUpdateInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}')">
+                <i class="fa-solid fa-sync-alt text-xs"></i>
+                Update
+              </button>
+              <button class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-900 bg-amber-400 rounded-lg hover:bg-amber-500 hover:shadow-md hover:scale-105 transition-all duration-200 shadow-sm" onclick="handleEditInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}', '${escapeHtml(item.name || '')}')">
+                <i class="fa-solid fa-edit text-xs"></i>
+                Edit
+              </button>
+              <button class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 hover:shadow-md hover:scale-105 transition-all duration-200 shadow-sm" onclick="handleRemoveInventoryItem('${escapeHtml(item.sku || '')}', '${escapeHtml(item.name || '')}')">
+                <i class="fa-solid fa-trash text-xs"></i>
+                Remove
+              </button>
             `
             : `
-              <button class="stage-btn" onclick="handleUpdateInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}')">Update</button>
+              <button class="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-md hover:scale-105 transition-all duration-200 shadow-sm" onclick="handleUpdateInventoryItem('${escapeHtml(itemId)}', '${escapeHtml(item.sku || '')}')">
+                <i class="fa-solid fa-sync-alt text-xs"></i>
+                Update
+              </button>
             `;
           tr.innerHTML = `
-            <td>${escapeHtml(item.name || '')}</td>
-            <td>${escapeHtml(item.sku || '')}</td>
-            <td>${item.quantity || 0}</td>
-            <td><input type="number" class="stage-input" value="${item.quantity || 0}" data-item-id="${escapeHtml(itemId)}" data-item-sku="${escapeHtml(item.sku || '')}" data-item-name="${escapeHtml(item.name || '')}" /></td>
-            <td style="display:flex;gap:8px;">
-              ${actionButtons}
+            <td class="px-6 py-4 text-slate-900">${escapeHtml(item.name || '')}</td>
+            <td class="px-6 py-4 text-slate-700">${escapeHtml(item.sku || '')}</td>
+            <td class="px-6 py-4 text-center font-semibold text-slate-900">${item.quantity || 0}</td>
+            <td class="px-6 py-4 text-center"><input type="number" class="stage-input" value="${item.quantity || 0}" data-item-id="${escapeHtml(itemId)}" data-item-sku="${escapeHtml(item.sku || '')}" data-item-name="${escapeHtml(item.name || '')}" /></td>
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-center gap-2 flex-wrap">
+                ${actionButtons}
+              </div>
             </td>
           `;
           inventoryTableBody.appendChild(tr);
@@ -980,34 +1008,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Add phones summary row
         const phonesRow = document.createElement("tr");
         phonesRow.className = "special-row";
-        phonesRow.style.background = "#fff3cd";
+        phonesRow.style.background = "#FEF9C3";
         phonesRow.style.fontWeight = "700";
         phonesRow.innerHTML = `
-          <td><strong>phones</strong></td>
-          <td>-</td>
-          <td><strong>${phonesTotal}</strong></td>
-          <td>-</td>
-          <td>-</td>
+          <td class="px-6 py-4"><strong>phones</strong></td>
+          <td class="px-6 py-4">-</td>
+          <td class="px-6 py-4 text-center"><strong>${phonesTotal}</strong></td>
+          <td class="px-6 py-4 text-center">-</td>
+          <td class="px-6 py-4 text-center">-</td>
         `;
         inventoryTableBody.appendChild(phonesRow);
         
         // Add simcards summary row
         const simcardsRow = document.createElement("tr");
         simcardsRow.className = "special-row";
-        simcardsRow.style.background = "#fff3cd";
+        simcardsRow.style.background = "#FEF9C3";
         simcardsRow.style.fontWeight = "700";
         simcardsRow.innerHTML = `
-          <td><strong>simcard</strong></td>
-          <td>-</td>
-          <td><strong>${simcardsTotal}</strong></td>
-          <td>-</td>
-          <td>-</td>
+          <td class="px-6 py-4"><strong>simcard</strong></td>
+          <td class="px-6 py-4">-</td>
+          <td class="px-6 py-4 text-center"><strong>${simcardsTotal}</strong></td>
+          <td class="px-6 py-4 text-center">-</td>
+          <td class="px-6 py-4 text-center">-</td>
         `;
         inventoryTableBody.appendChild(simcardsRow);
       } catch (e) {
         console.error("Inventory load failed", e);
         if (inventoryTableBody) {
-          inventoryTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#dc3545;">Failed to load inventory</td></tr>';
+          inventoryTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-600 font-semibold">Failed to load inventory</td></tr>';
         }
       }
     }
@@ -1091,19 +1119,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         
         try {
-          await createInventorySnapshot(session.storeId);
-          showSuccess("Inventory snapshot submitted successfully!", "Inventory Submitted");
+          console.log('Submitting inventory snapshot for store:', session.storeId);
+          const result = await createInventorySnapshot(session.storeId);
+          console.log('Inventory snapshot result:', result);
           
-          // If we're on the inventory history page, refresh it
-          const path = window.location.pathname.split('/').pop();
-          if (path === 'store-inventory-history.html' && typeof loadInventoryHistory === 'function') {
-            // Small delay to ensure backend has processed the snapshot
-            setTimeout(() => {
-              loadInventoryHistory();
-            }, 500);
+          if (result && (result.message === "Snapshot created" || result.message === "Snapshot updated")) {
+            showSuccess("Inventory snapshot submitted successfully!", "Inventory Submitted");
+            
+            // If we're on the inventory history page, refresh it
+            const path = window.location.pathname.split('/').pop();
+            if (path === 'store-inventory-history.html' && typeof loadInventoryHistory === 'function') {
+              // Small delay to ensure backend has processed the snapshot
+              setTimeout(() => {
+                console.log('Refreshing inventory history...');
+                loadInventoryHistory();
+              }, 500);
+            } else {
+              // If not on history page, suggest navigating to it
+              console.log('Snapshot created. Navigate to history page to view it.');
+            }
+          } else {
+            console.warn('Unexpected response from snapshot creation:', result);
+            showSuccess("Inventory snapshot submitted successfully!", "Inventory Submitted");
           }
         } catch (e) {
-          showError("Failed to submit inventory: " + (e.message || "Unknown error"));
+          console.error('Error submitting inventory snapshot:', e);
+          const errorMsg = e.message || e.error || "Unknown error";
+          showError("Failed to submit inventory: " + errorMsg);
         }
       };
     }
@@ -1154,6 +1196,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       const total1 = total1Input ? parseNumber(total1Input.value, parseFloat) : 0;
       const submittedBy = session.name || session.storeName || "Unknown";
       
+      // Validation: At least one field must have a value
+      const hasAnyValue = cashAmount > 0 || creditAmount > 0 || qpayAmount > 0 || boxesCount > 0 || total1 > 0 || notes.trim().length > 0;
+      
+      if (!hasAnyValue) {
+        showError("Please enter at least one field (Cash, Credit, QPay, Boxes Count, Total1, or Notes) before submitting.", "Validation Error");
+        // Focus on the first input field
+        if (cashAmountInput) {
+          cashAmountInput.focus();
+          cashAmountInput.style.borderColor = '#EF4444';
+          setTimeout(() => {
+            if (cashAmountInput) cashAmountInput.style.borderColor = '';
+          }, 3000);
+        }
+        return;
+      }
+      
       // Debug logging
       console.log("EOD Submission Values:", {
         cashAmount,
@@ -1191,34 +1249,55 @@ document.addEventListener("DOMContentLoaded", async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const viewAs = urlParams.get('view_as');
     
-    if (session?.role === "super-admin") {
+    // Always hide back to super-admin link by default
+    const backLink = qs("backToSuperAdmin");
+    if (backLink) backLink.style.display = "none";
+    
+    // Always hide viewing notice by default
+    const notice = qs("viewingAsNotice");
+    if (notice) notice.style.display = "none";
+    
+    if (session?.role === "super-admin" && viewAs) {
+      // Only show these when super-admin is viewing another manager's dashboard
       // Hide manager-specific navigation for super-admin
       const navLinks = qs("managerNavLinks");
       if (navLinks) navLinks.style.display = "none";
       
-      // Show back to super-admin link
-      const backLink = qs("backToSuperAdmin");
-      if (backLink) backLink.style.display = "inline-block";
+      // Show back to super-admin link only when viewing as another manager
+      if (backLink) backLink.style.display = "flex";
       
       // Hide add store button for super-admin (they can't add stores for managers)
       const addStoreBtn = qs("addStoreBtn");
       if (addStoreBtn) addStoreBtn.style.display = "none";
       
       // Update title if viewing as another manager
-      if (viewAs) {
-        const title = qs("dashboardTitle");
-        if (title) title.textContent = `Manager Dashboard — ${viewAs} (Viewing as Super Admin)`;
-        
-        const notice = qs("viewingAsNotice");
-        if (notice) {
-          notice.textContent = `Viewing as: ${viewAs}`;
-          notice.style.display = "inline-block";
-        }
+      const title = qs("dashboardTitle");
+      if (title) title.textContent = `Manager Dashboard — ${viewAs} (Viewing as Super Admin)`;
+      
+      if (notice) {
+        notice.textContent = `Viewing as: ${viewAs}`;
+        notice.style.display = "inline-block";
       }
+    } else if (session?.role === "manager") {
+      // Regular manager login - ensure back link is hidden
+      if (backLink) backLink.style.display = "none";
+      if (notice) notice.style.display = "none";
     }
     
     async function renderStores() {
       try {
+        // Show loading state immediately
+        if (managerCards) {
+          managerCards.innerHTML = `
+            <div class="flex items-center justify-center py-20">
+              <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
+                <p class="text-slate-600 text-lg font-medium">Loading stores...</p>
+              </div>
+            </div>
+          `;
+        }
+        
         // Check if super-admin is viewing a manager's dashboard
         const urlParams = new URLSearchParams(window.location.search);
         const viewAs = urlParams.get('view_as');
@@ -1233,7 +1312,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!managerCards) return;
         
         if (stores.length === 0) {
-          managerCards.innerHTML = '<div class="no-data">No stores found. Click "Add Store" to create one.</div>';
+          managerCards.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-slate-200 shadow-sm"><p class="text-slate-600 text-lg mb-4">No stores found.</p><p class="text-slate-500">Click "Add Store" to create one.</p></div>';
           return;
         }
         
@@ -1251,66 +1330,79 @@ document.addEventListener("DOMContentLoaded", async () => {
           const displayName = `${escapedName}-${totalBoxes}`;
           const allowedIp = escapeHtml(store.allowed_ip || 'Not set');
           return `
-          <div class="simple-store-card" data-store-name="${escapedName}">
-            <div class="simple-card-header">
-              <div>
-                <h3>${displayName}</h3>
-                <div style="font-size:0.85rem;color:#6c757d;margin-top:4px;">Allowed IP: <strong>${allowedIp}</strong></div>
-              </div>
-              <div style="display:flex;gap:8px;">
-                <button onclick="window.location='store-inventory.html?store=${encodeURIComponent(escapedName)}${navQuery}'" style="background:#007bff;color:white;padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.2s ease;" onmouseover="this.style.background='#0056b3';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#007bff';this.style.transform='none'">
-                  📦 Manage Inventory
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden mb-6" data-store-name="${escapedName}">
+            <div class="bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-5 border-b border-slate-200">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-2xl font-bold text-slate-900 mb-1">${displayName}</h3>
+                  <div class="text-sm text-slate-600 flex items-center gap-2">
+                    <i class="fa-solid fa-network-wired text-xs"></i>
+                    <span>Allowed IP: <strong class="text-slate-900">${allowedIp}</strong></span>
+                  </div>
+                </div>
+                <button onclick="window.location='store-inventory.html?store=${encodeURIComponent(escapedName)}${navQuery}'" class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm">
+                  <i class="fa-solid fa-boxes"></i>
+                  Manage Inventory
                 </button>
               </div>
             </div>
-            <div class="store-card-details" id="details-${storeId.replace(/\s/g, '-')}">
-              <div class="store-card-body">
-                <div class="store-section">
-                  <div class="store-info-grid">
-                    <div class="info-box">
-                      <div class="info-box-label">Total Inventory</div>
-                      <div class="info-box-value" id="inv-total-${storeId.replace(/\s/g, '-')}">-</div>
-                      <div class="info-box-detail" id="inv-count-${storeId.replace(/\s/g, '-')}">Loading...</div>
+            <div class="store-card-details max-h-0 overflow-hidden transition-all duration-400 ease-in-out" id="details-${storeId.replace(/\s/g, '-')}">
+              <div class="p-6 space-y-6">
+                <div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-50 p-5 rounded-lg border-l-4 border-blue-600">
+                      <div class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Total Inventory</div>
+                      <div class="text-3xl font-bold text-slate-900 mb-1" id="inv-total-${storeId.replace(/\s/g, '-')}">-</div>
+                      <div class="text-sm text-slate-500" id="inv-count-${storeId.replace(/\s/g, '-')}">Loading...</div>
                     </div>
-                    <div class="info-box" style="cursor:pointer;" onclick="window.location='store-inventory-history.html?store=${encodeURIComponent(escapedName)}${navQuery}'" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
-                      <div class="info-box-label">Inventory History</div>
-                      <div class="info-box-value" id="inv-history-${storeId.replace(/\s/g, '-')}">-</div>
-                      <div class="info-box-detail" id="inv-history-detail-${storeId.replace(/\s/g, '-')}">Loading...</div>
+                    <div class="bg-slate-50 p-5 rounded-lg border-l-4 border-blue-600 cursor-pointer hover:bg-slate-100 transition-colors" onclick="window.location='store-inventory-history.html?store=${encodeURIComponent(escapedName)}${navQuery}'">
+                      <div class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Inventory History</div>
+                      <div class="text-3xl font-bold text-slate-900 mb-1" id="inv-history-${storeId.replace(/\s/g, '-')}">-</div>
+                      <div class="text-sm text-slate-500" id="inv-history-detail-${storeId.replace(/\s/g, '-')}">Loading...</div>
                     </div>
-                    <div class="info-box success">
-                      <div class="info-box-label">Employee Activity</div>
-                      <div class="info-box-value" id="emp-active-${storeId.replace(/\s/g, '-')}">-</div>
-                      <div class="info-box-detail" id="emp-total-${storeId.replace(/\s/g, '-')}">Loading...</div>
+                    <div class="bg-emerald-50 p-5 rounded-lg border-l-4 border-emerald-500">
+                      <div class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Employee Activity</div>
+                      <div class="text-3xl font-bold text-slate-900 mb-1" id="emp-active-${storeId.replace(/\s/g, '-')}">-</div>
+                      <div class="text-sm text-slate-500" id="emp-total-${storeId.replace(/\s/g, '-')}">Loading...</div>
                     </div>
-                    <div class="info-box" style="cursor:pointer;" onclick="window.location='store-eod-list.html?store=${encodeURIComponent(escapedName)}${navQuery}'" onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
-                      <div class="info-box-label">EOD Reports</div>
-                      <div class="info-box-value" id="eod-total-${storeId.replace(/\s/g, '-')}">-</div>
-                      <div class="info-box-detail" id="eod-latest-${storeId.replace(/\s/g, '-')}">Loading...</div>
+                    <div class="bg-slate-50 p-5 rounded-lg border-l-4 border-blue-600 cursor-pointer hover:bg-slate-100 transition-colors" onclick="window.location='store-eod-list.html?store=${encodeURIComponent(escapedName)}${navQuery}'">
+                      <div class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">EOD Reports</div>
+                      <div class="text-3xl font-bold text-slate-900 mb-1" id="eod-total-${storeId.replace(/\s/g, '-')}">-</div>
+                      <div class="text-sm text-slate-500" id="eod-latest-${storeId.replace(/\s/g, '-')}">Loading...</div>
                     </div>
                   </div>
                 </div>
-                <div class="store-section">
-                  <div class="store-section-title">
-                    <span class="icon">👥</span> Employees Today
+                <div>
+                  <div class="flex items-center gap-3 mb-4">
+                    <i class="fa-solid fa-users text-blue-600 text-lg"></i>
+                    <h4 class="text-lg font-bold text-slate-900">Employees Today</h4>
                   </div>
-                  <div class="employee-list" id="emp-list-${storeId.replace(/\s/g, '-')}">Loading employees...</div>
+                  <div class="space-y-2" id="emp-list-${storeId.replace(/\s/g, '-')}">
+                    <div class="text-center py-4 text-slate-500">Loading employees...</div>
+                  </div>
                 </div>
-                <div class="store-section">
-                  <div class="store-section-title">
-                    <span class="icon">📦</span> Inventory Preview
+                <div>
+                  <div class="flex items-center gap-3 mb-4">
+                    <i class="fa-solid fa-boxes text-blue-600 text-lg"></i>
+                    <h4 class="text-lg font-bold text-slate-900">Inventory Preview</h4>
                   </div>
-                  <div class="inventory-grid" id="inv-grid-${storeId.replace(/\s/g, '-')}">Loading inventory...</div>
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="inv-grid-${storeId.replace(/\s/g, '-')}">
+                    <div class="text-center py-4 text-slate-500">Loading inventory...</div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="simple-card-actions">
-              <button class="manage-store-btn" data-store-name="${escapedName}" onclick="toggleStoreDetails('${escapedName}')">
-                <span class="icon">📊</span> Manage Store
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex flex-wrap items-center justify-center gap-3">
+              <button class="manage-store-btn flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm" data-store-name="${escapedName}" onclick="toggleStoreDetails('${escapedName}')">
+                <i class="fa-solid fa-chart-bar"></i>
+                Manage Store
               </button>
-              <button class="btn-edit-store" data-store-name="${escapedName}" data-store-boxes="${totalBoxes}" data-store-username="${escapeHtml(store.username || '')}" data-store-ip="${escapeHtml(store.allowed_ip || '')}" style="background:#ffc107;color:#000;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:1rem;transition:all 0.2s ease;margin-left:12px;" onmouseover="this.style.background='#e0a800';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(255,193,7,0.3)'" onmouseout="this.style.background='#ffc107';this.style.transform='none';this.style.boxShadow='none'">
+              <button class="btn-edit-store flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-slate-900 bg-amber-400 rounded-lg hover:bg-amber-500 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm" data-store-name="${escapedName}" data-store-boxes="${totalBoxes}" data-store-username="${escapeHtml(store.username || '')}" data-store-ip="${escapeHtml(store.allowed_ip || '')}">
+                <i class="fa-solid fa-edit"></i>
                 Edit Store
               </button>
-              <button class="btn-remove-store" data-store-name="${escapedName}" style="background:#dc3545;color:white;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:1rem;transition:all 0.2s ease;margin-left:12px;" onmouseover="this.style.background='#c82333';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(220,53,69,0.3)'" onmouseout="this.style.background='#dc3545';this.style.transform='none';this.style.boxShadow='none'">
+              <button class="btn-remove-store flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm" data-store-name="${escapedName}">
+                <i class="fa-solid fa-trash"></i>
                 Remove Store
               </button>
             </div>
@@ -1346,7 +1438,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       } catch (e) {
         console.error("Failed to load stores", e);
         if (managerCards) {
-          managerCards.innerHTML = '<div class="no-data" style="color:#dc3545;">Failed to load stores. Please refresh.</div>';
+          managerCards.innerHTML = '<div class="text-center py-12 bg-white rounded-xl border border-red-200 shadow-sm"><p class="text-red-600 text-lg font-semibold mb-2">Failed to load stores</p><p class="text-slate-500">Please refresh the page.</p></div>';
         }
       }
     }
@@ -1382,10 +1474,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       
       if (details.classList.contains('expanded')) {
         details.classList.remove('expanded');
-        btn.innerHTML = '<span class="icon">📊</span> Manage Store';
+        details.style.maxHeight = '0';
+        btn.innerHTML = '<i class="fa-solid fa-chart-bar"></i> Manage Store';
       } else {
         details.classList.add('expanded');
-        btn.innerHTML = '<span class="icon">👁️</span> Hide Details';
+        details.style.maxHeight = '3000px';
+        btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Hide Details';
         // Load details if not already loaded
         loadStoreDetails(storeName);
       }
@@ -1397,27 +1491,36 @@ document.addEventListener("DOMContentLoaded", async () => {
       const safeId = storeId.replace(/\s/g, '-');
       
       try {
-        // Load employees who clocked in today
+        // Load all data in parallel for better performance
+        const [todayDataResult, inventoryResult, historyResult, eodsResult] = await Promise.allSettled([
+          apiGet('/timeclock/today', { store_id: storeId }),
+          loadInventory(storeId),
+          apiGet('/inventory/history', { store_id: storeId }),
+          loadEods(storeId)
+        ]);
+        
+        // Process employees data
         try {
-          const todayData = await apiGet('/timeclock/today', { store_id: storeId });
+          const todayData = todayDataResult.status === 'fulfilled' ? todayDataResult.value : { employees: [] };
           const employees = todayData.employees || [];
           const empList = qs(`emp-list-${safeId}`);
           
           if (empList) {
             if (employees.length === 0) {
-              empList.innerHTML = '<div class="no-data">No employees clocked in today</div>';
+              empList.innerHTML = '<div class="text-center py-6 text-slate-500 bg-slate-50 rounded-lg">No employees clocked in today</div>';
             } else {
               empList.innerHTML = employees.map(emp => {
                 const status = emp.status === 'clocked_in' ? 'Active' : 'Clocked Out';
-                const statusClass = emp.status === 'clocked_in' ? 'employee-status' : 'employee-status-out';
+                const statusBg = emp.status === 'clocked_in' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600';
+                const borderColor = emp.status === 'clocked_in' ? 'border-emerald-500' : 'border-slate-400';
                 const hours = emp.hours_worked ? `${emp.hours_worked.toFixed(2)} hrs` : '';
                 return `
-                  <div class="employee-item">
+                  <div class="bg-slate-50 p-4 rounded-lg flex justify-between items-center border-l-4 ${borderColor} hover:bg-slate-100 transition-colors">
                     <div>
-                      <div class="employee-name">${escapeHtml(emp.employee_name)}</div>
-                      <div class="employee-time">${hours}</div>
+                      <div class="font-semibold text-slate-900">${escapeHtml(emp.employee_name)}</div>
+                      <div class="text-sm text-slate-600 mt-1">${hours}</div>
                     </div>
-                    <span class="${statusClass}">${status}</span>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusBg}">${status}</span>
                   </div>
                 `;
               }).join('');
@@ -1428,76 +1531,84 @@ document.addEventListener("DOMContentLoaded", async () => {
             qs(`emp-active-${safeId}`).textContent = activeCount;
           }
         } catch (err) {
-          console.error('Failed to load today employees:', err);
+          console.error('Failed to process employees:', err);
           const empList = qs(`emp-list-${safeId}`);
           if (empList) {
-            empList.innerHTML = '<div class="no-data" style="color:#dc3545;">Failed to load employees</div>';
+            empList.innerHTML = '<div class="text-center py-6 text-red-600 bg-red-50 rounded-lg">Failed to load employees</div>';
           }
         }
         
-        // Load inventory
-        const inventory = await loadInventory(storeId);
-        const invGrid = qs(`inv-grid-${safeId}`);
-        if (invGrid) {
-          if (inventory.length === 0) {
-            invGrid.innerHTML = '<div class="no-data">No inventory items</div>';
-          } else {
-            const topItems = inventory.slice(0, 8);
-            invGrid.innerHTML = topItems.map(item => {
-              const qty = item.quantity || 0;
-              let qtyClass = 'high';
-              if (qty === 0) qtyClass = 'low';
-              else if (qty <= 3) qtyClass = 'medium';
-              return `
-                <div class="inventory-item">
-                  <div class="inventory-item-name">${escapeHtml(item.name)}</div>
-                  <div class="inventory-item-qty ${qtyClass}">${qty}</div>
-                </div>
-              `;
-            }).join('');
-          }
-          const totalQty = inventory.reduce((sum, item) => sum + (item.quantity || 0), 0);
-          
-          qs(`inv-total-${safeId}`).textContent = totalQty;
-          qs(`inv-count-${safeId}`).textContent = `${inventory.length} items`;
-          
-          // Load inventory history count
-          try {
-            const historyData = await apiGet('/inventory/history', { store_id: storeId });
-            const historyCount = qs(`inv-history-${safeId}`);
-            const historyDetail = qs(`inv-history-detail-${safeId}`);
-            if (historyCount && historyDetail) {
-              historyCount.textContent = historyData.length;
-              if (historyData.length > 0) {
-                const latest = historyData[0];
-                const date = new Date(latest.snapshot_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                historyDetail.textContent = `Latest: ${date}`;
-              } else {
-                historyDetail.textContent = 'No snapshots yet';
-              }
+        // Process inventory data
+        try {
+          const inventory = inventoryResult.status === 'fulfilled' ? inventoryResult.value : [];
+          const invGrid = qs(`inv-grid-${safeId}`);
+          if (invGrid) {
+            if (inventory.length === 0) {
+              invGrid.innerHTML = '<div class="text-center py-6 text-slate-500 bg-slate-50 rounded-lg col-span-full">No inventory items</div>';
+            } else {
+              const topItems = inventory.slice(0, 8);
+              invGrid.innerHTML = topItems.map(item => {
+                const qty = item.quantity || 0;
+                let qtyBg = 'bg-emerald-100 text-emerald-800';
+                if (qty === 0) qtyBg = 'bg-red-100 text-red-800';
+                else if (qty <= 3) qtyBg = 'bg-amber-100 text-amber-800';
+                return `
+                  <div class="bg-white p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
+                    <div class="text-sm font-medium text-slate-900 mb-2 truncate">${escapeHtml(item.name)}</div>
+                    <div class="text-2xl font-bold ${qtyBg} px-3 py-1 rounded-lg text-center">${qty}</div>
+                  </div>
+                `;
+              }).join('');
             }
-          } catch (err) {
-            console.error('Failed to load inventory history:', err);
-            const historyCount = qs(`inv-history-${safeId}`);
-            const historyDetail = qs(`inv-history-detail-${safeId}`);
-            if (historyCount) historyCount.textContent = '0';
-            if (historyDetail) historyDetail.textContent = 'No history';
+            const totalQty = inventory.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            
+            qs(`inv-total-${safeId}`).textContent = totalQty;
+            qs(`inv-count-${safeId}`).textContent = `${inventory.length} items`;
           }
+        } catch (err) {
+          console.error('Failed to process inventory:', err);
         }
         
-        // Load EOD reports
-        const eods = await loadEods(storeId);
-        const eodTotal = qs(`eod-total-${safeId}`);
-        const eodLatest = qs(`eod-latest-${safeId}`);
-        if (eodTotal && eodLatest) {
-          eodTotal.textContent = eods.length;
-          if (eods.length > 0) {
-            const latest = eods[0];
-            const date = new Date(latest.report_date).toLocaleDateString();
-            eodLatest.textContent = `Latest: ${date}`;
-          } else {
-            eodLatest.textContent = 'No reports yet';
+        // Process inventory history
+        try {
+          const historyData = historyResult.status === 'fulfilled' ? historyResult.value : [];
+          const historyCount = qs(`inv-history-${safeId}`);
+          const historyDetail = qs(`inv-history-detail-${safeId}`);
+          if (historyCount && historyDetail) {
+            historyCount.textContent = historyData.length;
+            if (historyData.length > 0) {
+              const latest = historyData[0];
+              const date = new Date(latest.snapshot_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              historyDetail.textContent = `Latest: ${date}`;
+            } else {
+              historyDetail.textContent = 'No snapshots yet';
+            }
           }
+        } catch (err) {
+          console.error('Failed to process inventory history:', err);
+          const historyCount = qs(`inv-history-${safeId}`);
+          const historyDetail = qs(`inv-history-detail-${safeId}`);
+          if (historyCount) historyCount.textContent = '0';
+          if (historyDetail) historyDetail.textContent = 'No history';
+        }
+        
+        // Process EOD reports
+        try {
+          const eods = eodsResult.status === 'fulfilled' ? eodsResult.value : [];
+          const eodTotal = qs(`eod-total-${safeId}`);
+          const eodLatest = qs(`eod-latest-${safeId}`);
+          if (eodTotal && eodLatest) {
+            eodTotal.textContent = eods.length;
+            if (eods.length > 0) {
+              const latest = eods[0];
+              const date = new Date(latest.report_date).toLocaleDateString();
+              eodLatest.textContent = `Latest: ${date}`;
+            } else {
+              eodLatest.textContent = 'No reports yet';
+            }
+          }
+        } catch (err) {
+          console.error('Failed to process EOD reports:', err);
         }
       } catch (e) {
         console.error(`Failed to load details for ${storeName}:`, e);
@@ -1560,11 +1671,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     const eodListContainer = qs("eodListContainer");
     const backBtn = qs("backBtn");
     const storeTitle = qs("storeTitle");
+    const backToSuperAdmin = qs("backToSuperAdmin");
     
     // Get store name and view_as from URL parameter
     const urlParams = new URLSearchParams(window.location.search);
     const storeName = urlParams.get("store") || "Store";
     const viewAs = urlParams.get("view_as");
+    
+    // Show "Back to Super Admin" button if view_as is present
+    if (backToSuperAdmin && viewAs && session?.role === 'super-admin') {
+      backToSuperAdmin.style.display = "flex";
+    }
     
     // Update title
     if (storeTitle) {
@@ -1582,6 +1699,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Load and display EOD reports
     async function loadEODReports() {
       try {
+        // Show loading state immediately
+        if (eodListContainer) {
+          eodListContainer.innerHTML = `
+            <div class="flex items-center justify-center py-20">
+              <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
+                <p class="text-slate-600 text-lg font-medium">Loading EOD reports...</p>
+              </div>
+            </div>
+          `;
+        }
+        
         const eods = await loadEods(storeName);
         if (!eodListContainer) return;
         
@@ -1710,12 +1839,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const eodDetailContainer = qs("eodDetailContainer");
     const backToListBtn = qs("backToListBtn");
     const eodDetailTitle = qs("eodDetailTitle");
+    const backToSuperAdmin = qs("backToSuperAdmin");
     
     // Get store name, date, and view_as from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const storeName = urlParams.get("store") || "Store";
     const reportDate = urlParams.get("date");
     const viewAs = urlParams.get("view_as");
+    
+    // Show "Back to Super Admin" button if view_as is present
+    if (backToSuperAdmin && viewAs && session?.role === 'super-admin') {
+      backToSuperAdmin.style.display = "flex";
+    }
     
     // Update title
     if (eodDetailTitle && reportDate) {
@@ -1738,6 +1873,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Load and display EOD report details
     async function loadEODDetail() {
       try {
+        // Show loading state immediately
+        if (eodDetailContainer) {
+          eodDetailContainer.innerHTML = `
+            <div class="flex items-center justify-center py-20">
+              <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-4"></div>
+                <p class="text-slate-600 text-lg font-medium">Loading EOD report details...</p>
+              </div>
+            </div>
+          `;
+        }
+        
         const eods = await loadEods(storeName);
         // Normalize dates for comparison - handle both "2025-01-15" and "2025-01-15T00:00:00Z" formats
         const normalizeDate = (dateStr) => {
@@ -1883,6 +2030,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const inventorySearch = qs("inventorySearch");
     const storeTitle = qs("storeTitle");
     const backBtn = qs("backBtn");
+    const backToSuperAdmin = qs("backToSuperAdmin");
+    
+    // Show "Back to Super Admin" button if view_as is present
+    if (backToSuperAdmin && viewAs && session?.role === 'super-admin') {
+      backToSuperAdmin.style.display = "inline-block";
+    }
     
     // Update title
     if (storeTitle) {
@@ -1957,34 +2110,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Add phones summary row
         const phonesRow = document.createElement("tr");
         phonesRow.className = "special-row";
-        phonesRow.style.background = "#fff3cd";
+        phonesRow.style.background = "#FEF9C3";
         phonesRow.style.fontWeight = "700";
         phonesRow.innerHTML = `
-          <td><strong>phones</strong></td>
-          <td>-</td>
-          <td><strong>${phonesTotal}</strong></td>
-          <td>-</td>
-          <td>-</td>
+          <td class="px-6 py-4"><strong>phones</strong></td>
+          <td class="px-6 py-4">-</td>
+          <td class="px-6 py-4 text-center"><strong>${phonesTotal}</strong></td>
+          <td class="px-6 py-4 text-center">-</td>
+          <td class="px-6 py-4 text-center">-</td>
         `;
         inventoryTableBody.appendChild(phonesRow);
         
         // Add simcards summary row
         const simcardsRow = document.createElement("tr");
         simcardsRow.className = "special-row";
-        simcardsRow.style.background = "#fff3cd";
+        simcardsRow.style.background = "#FEF9C3";
         simcardsRow.style.fontWeight = "700";
         simcardsRow.innerHTML = `
-          <td><strong>simcard</strong></td>
-          <td>-</td>
-          <td><strong>${simcardsTotal}</strong></td>
-          <td>-</td>
-          <td>-</td>
+          <td class="px-6 py-4"><strong>simcard</strong></td>
+          <td class="px-6 py-4">-</td>
+          <td class="px-6 py-4 text-center"><strong>${simcardsTotal}</strong></td>
+          <td class="px-6 py-4 text-center">-</td>
+          <td class="px-6 py-4 text-center">-</td>
         `;
         inventoryTableBody.appendChild(simcardsRow);
       } catch (e) {
         console.error("Inventory load failed", e);
         if (inventoryTableBody) {
-          inventoryTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#dc3545;">Failed to load inventory</td></tr>';
+          inventoryTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-600 font-semibold">Failed to load inventory</td></tr>';
         }
       }
     };

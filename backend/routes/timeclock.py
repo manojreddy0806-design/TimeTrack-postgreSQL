@@ -102,6 +102,8 @@ def clock_in_face():
         employee_id = int(match["employee_id"])
         employee_name = match["employee_name"]
         confidence = match["confidence"]
+        # Convert numpy types to Python float for database compatibility
+        confidence = float(confidence) if confidence is not None else None
         
         # Get employee object
         employee = Employee.query.get(employee_id)
@@ -238,6 +240,8 @@ def clock_out_face():
         employee_id = int(match["employee_id"])
         employee_name = match["employee_name"]
         confidence = match["confidence"]
+        # Convert numpy types to Python float for database compatibility
+        confidence = float(confidence) if confidence is not None else None
         
         # Get employee object
         employee = Employee.query.get(employee_id)

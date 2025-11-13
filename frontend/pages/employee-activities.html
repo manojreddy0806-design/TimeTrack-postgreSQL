@@ -1,191 +1,155 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Activities — TimeTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3B82F6',
+                            hover: '#2563EB'
+                        },
+                        secondary: '#64748B',
+                        light: '#F8FAFC',
+                        'card-border': '#E2E8F0',
+                        'input-border': '#CBD5E1'
+                    }
+                }
+            }
+        };
+    </script>
     <style>
-        .activities-container {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
+        ::-webkit-scrollbar { display: none; }
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .employee-info-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 24px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .page-fade-in {
+            animation: fadeInPage 0.6s ease forwards;
         }
-        .employee-info-card h3 {
-            margin: 0 0 8px 0;
-            font-size: 1.8rem;
+        .nav-link-active {
+            color: #1d4ed8 !important;
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 16px rgba(15, 23, 42, 0.18);
         }
-        .employee-info-card p {
-            margin: 0;
-            opacity: 0.9;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #007bff;
-            margin-bottom: 8px;
-        }
-        .stat-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        .activities-table {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .table-header {
-            background: #f8f9fa;
-            padding: 16px 24px;
-            border-bottom: 2px solid #e9ecef;
-        }
-        .table-header h3 {
-            margin: 0;
-            color: #2c3e50;
-        }
-        .activities-list {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-        .activity-row {
-            padding: 20px 24px;
-            border-bottom: 1px solid #e9ecef;
-            display: grid;
-            grid-template-columns: 150px 120px 120px 120px 150px 1fr;
-            gap: 16px;
-            align-items: center;
-            transition: background 0.2s ease;
-        }
-        .activity-row:hover {
-            background: #f8f9fa;
-        }
-        .activity-row:last-child {
-            border-bottom: none;
-        }
-        .activity-date {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        .activity-day {
-            color: #6c757d;
-            font-size: 0.85rem;
-            margin-top: 4px;
-        }
-        .activity-time {
-            color: #495057;
-            font-size: 0.95rem;
-        }
-        .activity-hours {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #007bff;
-        }
-        .activity-status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 600;
+        .nav-link-active:hover {
+            color: white !important;
+            background-color: rgba(59, 130, 246, 0.5) !important;
         }
         .status-complete {
-            background: #d4edda;
-            color: #155724;
+            background: #D1FAE5;
+            color: #065F46;
         }
         .status-active {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #6c757d;
-        }
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-        }
-        @media (max-width: 768px) {
-            .activity-row {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
+            background: #FEF3C7;
+            color: #92400E;
         }
     </style>
 </head>
-<body>
-    <div class="navbar">
-        <div class="nav-left">
-            <div class="logo">⏰ TimeTrack</div>
-            <nav class="nav-links">
-               <a href="manager.html">Dashboard</a>
-                <a href="add-employee.html">Add Employee</a>
-                <a href="list-employees.html">List Employees</a>
-            </nav>
-        </div>
-        <div class="nav-right">
-            <a href="#" class="btn-logout" onclick="logoutApp()">Logout</a>
-        </div>
-    </div>
-    
-    <div class="activities-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 style="margin: 0; color: #2c3e50;">Employee Activities</h2>
-            <button onclick="window.history.back()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-                ← Back
-            </button>
-        </div>
-        
-        <div id="employeeInfoCard" style="display: none;"></div>
-        <div id="statsGrid" style="display: none;"></div>
-        <div id="activitiesTable" style="display: none;"></div>
-        
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <div class="empty-state-icon">📊</div>
-            <p style="font-size: 1.1rem; margin-bottom: 8px;">No employee selected</p>
-            <p style="font-size: 0.9rem;">Please select an employee from the list</p>
-        </div>
-        
-        <div id="loadingState" class="loading" style="display: none;">
-            <p>Loading activities...</p>
-        </div>
+<body class="bg-light font-sans antialiased text-slate-800">
+    <div id="app-container" class="min-h-screen pb-12">
+        <header id="header" class="sticky top-0 z-50 w-full">
+            <div class="w-[95%] max-w-7xl mx-auto mt-4 bg-gradient-to-r from-blue-600 to-blue-700 backdrop-blur-xl rounded-2xl shadow-2xl border border-blue-400/30">
+                <div class="flex items-center justify-between px-10 py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white rounded-xl p-2.5 flex items-center justify-center hover:scale-110 transition-transform duration-200 shadow-lg">
+                            <i class="fa-solid fa-clock text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-white">TimeTrack</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <nav class="hidden md:flex items-center space-x-3 bg-blue-700/20 px-3 py-2 rounded-xl backdrop-blur-sm">
+                            <a href="manager.html" data-nav-link class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-chart-pie mr-2"></i>
+                                Dashboard
+                            </a>
+                            <a href="add-employee.html" data-nav-link class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-user-plus mr-2"></i>
+                                Add Employee
+                            </a>
+                            <a href="list-employees.html" data-nav-link class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-users mr-2"></i>
+                                Employees
+                            </a>
+                        </nav>
+                        <button class="hidden md:flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform border border-white/20" onclick="logoutApp()">
+                            <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>
+                            Logout
+                        </button>
+                        <button class="md:hidden text-white hover:text-blue-200 transition-colors duration-200">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content" class="page-fade-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-3xl font-bold text-slate-900">Employee Activities</h1>
+                <button onclick="window.history.back()" class="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-slate-700 bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 hover:shadow-lg hover:scale-105 transition-all duration-200">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Back
+                </button>
+            </div>
+            
+            <div id="employeeInfoCard" class="hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8 rounded-2xl shadow-xl mb-8"></div>
+            
+            <div id="statsGrid" class="hidden grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"></div>
+            
+            <div id="activitiesTable" class="hidden bg-white rounded-xl border border-card-border shadow-sm overflow-hidden mb-8"></div>
+            
+            <div id="emptyState" class="hidden text-center py-16 bg-white rounded-xl border border-card-border shadow-sm">
+                <div class="text-5xl mb-4">📊</div>
+                <p class="text-secondary text-lg mb-2">No employee selected</p>
+                <p class="text-secondary text-sm">Please select an employee from the list</p>
+            </div>
+            
+            <div id="loadingState" class="hidden text-center py-12 bg-white rounded-xl border border-card-border shadow-sm">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-primary mb-4"></i>
+                <p class="text-secondary">Loading activities...</p>
+            </div>
+        </main>
     </div>
     
     <script src="static/js/script.js"></script>
     <script>
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            requestAnimationFrame(() => {
+                mainContent.classList.add('page-fade-in');
+            });
+        }
+
+        const nav = document.querySelector('nav');
+        if (nav) {
+            const links = Array.from(nav.querySelectorAll('a[data-nav-link]'));
+            const currentPath = window.location.pathname.split('/').pop();
+            const activeLink = links.find(link => link.getAttribute('href').split('/').pop() === currentPath) || links[0];
+            if (activeLink) {
+                activeLink.classList.add('nav-link-active');
+            }
+        }
+
         let allEmployees = [];
         let selectedEmployee = null;
-        let allEntries = []; // Store all entries for filtering
+        let allEntries = [];
         
-        // Load all employees
         async function loadAllEmployees() {
             try {
                 allEmployees = await apiGet('/employees/');
@@ -194,23 +158,20 @@
             }
         }
         
-        // Load employee activities
         async function loadEmployeeActivities(employeeId) {
             try {
-                document.getElementById('loadingState').style.display = 'block';
-                document.getElementById('emptyState').style.display = 'none';
-                document.getElementById('employeeInfoCard').style.display = 'none';
-                document.getElementById('statsGrid').style.display = 'none';
-                document.getElementById('activitiesTable').style.display = 'none';
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('employeeInfoCard').classList.add('hidden');
+                document.getElementById('statsGrid').classList.add('hidden');
+                document.getElementById('activitiesTable').classList.add('hidden');
                 
-                // Find selected employee
                 selectedEmployee = allEmployees.find(emp => emp.employee_id === employeeId);
                 
                 if (!selectedEmployee) {
                     throw new Error('Employee not found');
                 }
                 
-                // Get employee activities
                 const response = await fetch(`/api/timeclock/employee/${employeeId}/history`);
                 const data = await response.json();
                 
@@ -218,54 +179,48 @@
                     throw new Error(data.error || 'Failed to load activities');
                 }
                 
-                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('loadingState').classList.add('hidden');
                 
-                // Store all entries for filtering
                 allEntries = data.entries || [];
                 
-                // Display without filters initially
                 loadEmployeeActivitiesWithFilter(employeeId, null, null);
                 
             } catch (err) {
                 console.error('Failed to load activities:', err);
-                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('loadingState').classList.add('hidden');
                 document.getElementById('emptyState').innerHTML = `
-                    <div class="empty-state-icon">⚠️</div>
-                    <p style="font-size: 1.1rem; color: #dc3545;">Failed to load activities</p>
-                    <p style="font-size: 0.9rem;">${err.message}</p>
+                    <div class="text-5xl mb-4">⚠️</div>
+                    <p class="text-secondary text-lg mb-2" style="color: #dc3545;">Failed to load activities</p>
+                    <p class="text-secondary text-sm">${err.message}</p>
                 `;
-                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('emptyState').classList.remove('hidden');
             }
         }
         
-        // Display employee info card
         function displayEmployeeInfo(employee, totalHours = 0) {
             const card = document.getElementById('employeeInfoCard');
             
-            // Calculate earnings if hourly pay is available
             let earningsHtml = '';
             if (employee.hourly_pay !== undefined && employee.hourly_pay !== null && totalHours > 0) {
                 const earnings = totalHours * employee.hourly_pay;
                 earningsHtml = `
-                    <p style="margin-top: 8px; font-size: 1.1rem; font-weight: 600; opacity: 1;">
-                        Earnings: <span style="font-size: 1.3rem; color: #28a745;">$${earnings.toFixed(2)}</span>
+                    <p class="mt-2 text-lg font-semibold opacity-100">
+                        Earnings: <span class="text-2xl text-emerald-200">$${earnings.toFixed(2)}</span>
                     </p>
                 `;
             }
             
             card.innerHTML = `
-                <h3>${escapeHtml(employee.name)}</h3>
-                <p>${escapeHtml(employee.role || 'Employee')} • ${escapeHtml(employee.store_id)}</p>
-                <p style="margin-top: 12px; font-size: 1.1rem; font-weight: 600; opacity: 1;">
-                    Total Hours: <span style="font-size: 1.3rem;">${totalHours.toFixed(2)} hrs</span>
+                <h3 class="text-2xl font-bold mb-2">${escapeHtml(employee.name)}</h3>
+                <p class="opacity-90">${escapeHtml(employee.role || 'Employee')} • ${escapeHtml(employee.store_id)}</p>
+                <p class="mt-3 text-lg font-semibold opacity-100">
+                    Total Hours: <span class="text-2xl">${totalHours.toFixed(2)} hrs</span>
                 </p>
                 ${earningsHtml}
             `;
-            card.className = 'employee-info-card';
-            card.style.display = 'block';
+            card.classList.remove('hidden');
         }
         
-        // Calculate and display statistics
         function displayStatistics(entries) {
             const totalDays = entries.length;
             let totalHours = 0;
@@ -282,45 +237,41 @@
             
             const statsGrid = document.getElementById('statsGrid');
             statsGrid.innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-value">${totalDays}</div>
-                    <div class="stat-label">Total Days</div>
+                <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm text-center">
+                    <div class="text-3xl font-bold text-primary mb-2">${totalDays}</div>
+                    <div class="text-sm text-secondary">Total Days</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">${totalHours.toFixed(2)}</div>
-                    <div class="stat-label">Total Hours</div>
+                <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm text-center">
+                    <div class="text-3xl font-bold text-primary mb-2">${totalHours.toFixed(2)}</div>
+                    <div class="text-sm text-secondary">Total Hours</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">${avgHours}</div>
-                    <div class="stat-label">Avg Hours/Day</div>
+                <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm text-center">
+                    <div class="text-3xl font-bold text-primary mb-2">${avgHours}</div>
+                    <div class="text-sm text-secondary">Avg Hours/Day</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">${completedShifts}</div>
-                    <div class="stat-label">Completed Shifts</div>
+                <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm text-center">
+                    <div class="text-3xl font-bold text-primary mb-2">${completedShifts}</div>
+                    <div class="text-sm text-secondary">Completed Shifts</div>
                 </div>
             `;
-            statsGrid.className = 'stats-grid';
-            statsGrid.style.display = 'grid';
+            statsGrid.classList.remove('hidden');
         }
         
-        // Display activities table
         function displayActivities(entries, startDate = null, endDate = null) {
             const table = document.getElementById('activitiesTable');
             
-            // Entries are already filtered when passed to this function
             const filteredEntries = entries;
             
             if (filteredEntries.length === 0) {
                 document.getElementById('emptyState').innerHTML = `
-                    <div class="empty-state-icon">📭</div>
-                    <p style="font-size: 1.1rem;">No activities found</p>
-                    <p style="font-size: 0.9rem;">${startDate || endDate ? 'No entries found for the selected date range' : 'This employee hasn\'t clocked in yet'}</p>
+                    <div class="text-5xl mb-4">📭</div>
+                    <p class="text-secondary text-lg mb-2">No activities found</p>
+                    <p class="text-secondary text-sm">${startDate || endDate ? 'No entries found for the selected date range' : 'This employee hasn\'t clocked in yet'}</p>
                 `;
-                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('emptyState').classList.remove('hidden');
                 return;
             }
             
-            // Date range display text
             let dateRangeText = '';
             if (startDate && endDate) {
                 const startStr = new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -335,37 +286,31 @@
             }
             
             let html = `
-                <div class="table-header">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                        <h3 style="margin: 0;">Activity History (${filteredEntries.length} entries${dateRangeText})</h3>
-                        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <label for="startDate" style="font-size: 0.9rem; color: #6c757d; font-weight: 600;">Start:</label>
-                                <input type="date" id="startDate" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <div class="p-6 border-b border-card-border bg-slate-50">
+                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                        <h3 class="text-xl font-bold text-slate-900 m-0">Activity History (${filteredEntries.length} entries${dateRangeText})</h3>
+                        <div class="flex flex-wrap gap-3 items-center">
+                            <div class="flex gap-2 items-center">
+                                <label for="startDate" class="text-sm text-secondary font-semibold">Start:</label>
+                                <input type="date" id="startDate" class="px-3 py-2 border border-input-border rounded-lg text-sm">
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <label for="endDate" style="font-size: 0.9rem; color: #6c757d; font-weight: 600;">End:</label>
-                                <input type="date" id="endDate" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                            <div class="flex gap-2 items-center">
+                                <label for="endDate" class="text-sm text-secondary font-semibold">End:</label>
+                                <input type="date" id="endDate" class="px-3 py-2 border border-input-border rounded-lg text-sm">
                             </div>
-                            <button id="applyDateFilter" style="padding: 6px 16px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;" 
-                                    onmouseover="this.style.background='#0056b3'" 
-                                    onmouseout="this.style.background='#007bff'">
+                            <button id="applyDateFilter" class="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-primary-hover transition shadow-sm">
                                 Apply
                             </button>
-                            <button id="clearDateFilter" style="padding: 6px 16px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;" 
-                                    onmouseover="this.style.background='#5a6268'" 
-                                    onmouseout="this.style.background='#6c757d'">
+                            <button id="clearDateFilter" class="px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-200 rounded-lg hover:bg-slate-300 transition">
                                 Clear
                             </button>
-                            <button id="downloadExcelBtn" style="padding: 6px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem;" 
-                                    onmouseover="this.style.background='#218838'" 
-                                    onmouseout="this.style.background='#28a745'">
-                                📥 Download Excel
+                            <button id="downloadExcelBtn" class="px-4 py-2 text-sm font-semibold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition shadow-sm">
+                                <i class="fa-solid fa-download mr-2"></i>Download Excel
                             </button>
                         </div>
                     </div>
                 </div>
-                <div class="activities-list">
+                <div class="divide-y divide-slate-200 max-h-[600px] overflow-y-auto">
             `;
             
             filteredEntries.forEach(entry => {
@@ -385,7 +330,7 @@
                 
                 let clockOutTime = '-';
                 let hoursWorked = '-';
-                let statusHtml = '<span class="activity-status status-active">Active</span>';
+                let statusHtml = '<span class="status-active inline-block px-3 py-1 rounded-full text-xs font-semibold">Active</span>';
                 
                 if (entry.clock_out) {
                     const clockOutDate = new Date(entry.clock_out);
@@ -395,32 +340,32 @@
                         hour12: true
                     });
                     hoursWorked = entry.hours_worked ? `${entry.hours_worked.toFixed(2)} hrs` : '-';
-                    statusHtml = '<span class="activity-status status-complete">Complete</span>';
+                    statusHtml = '<span class="status-complete inline-block px-3 py-1 rounded-full text-xs font-semibold">Complete</span>';
                 }
                 
                 const storeName = entry.store_id || 'N/A';
                 
                 html += `
-                    <div class="activity-row">
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-6 gap-4 hover:bg-slate-50 transition-colors">
                         <div>
-                            <div class="activity-date">${dateStr}</div>
-                            <div class="activity-day">${dayStr}</div>
+                            <div class="font-semibold text-slate-900">${dateStr}</div>
+                            <div class="text-sm text-secondary mt-1">${dayStr}</div>
                         </div>
                         <div>
-                            <div style="color:#6c757d;font-size:0.8rem;margin-bottom:2px;">Clock In</div>
-                            <div class="activity-time">${clockInTime}</div>
+                            <div class="text-xs text-secondary mb-1">Clock In</div>
+                            <div class="text-slate-900">${clockInTime}</div>
                         </div>
                         <div>
-                            <div style="color:#6c757d;font-size:0.8rem;margin-bottom:2px;">Clock Out</div>
-                            <div class="activity-time">${clockOutTime}</div>
+                            <div class="text-xs text-secondary mb-1">Clock Out</div>
+                            <div class="text-slate-900">${clockOutTime}</div>
                         </div>
                         <div>
-                            <div style="color:#6c757d;font-size:0.8rem;margin-bottom:2px;">Hours</div>
-                            <div class="activity-hours">${hoursWorked}</div>
+                            <div class="text-xs text-secondary mb-1">Hours</div>
+                            <div class="text-xl font-bold text-primary">${hoursWorked}</div>
                         </div>
                         <div>
-                            <div style="color:#6c757d;font-size:0.8rem;margin-bottom:2px;">Store</div>
-                            <div style="color:#495057;font-size:0.95rem;font-weight:600;">${storeName}</div>
+                            <div class="text-xs text-secondary mb-1">Store</div>
+                            <div class="text-slate-900 font-semibold">${storeName}</div>
                         </div>
                         <div>
                             ${statusHtml}
@@ -432,10 +377,8 @@
             html += '</div>';
             
             table.innerHTML = html;
-            table.className = 'activities-table';
-            table.style.display = 'block';
+            table.classList.remove('hidden');
             
-            // Set date inputs if filters were applied
             if (startDate) {
                 document.getElementById('startDate').value = startDate;
             }
@@ -443,7 +386,6 @@
                 document.getElementById('endDate').value = endDate;
             }
             
-            // Add event listeners for date filter buttons
             document.getElementById('applyDateFilter').onclick = () => {
                 const start = document.getElementById('startDate').value;
                 const end = document.getElementById('endDate').value;
@@ -460,13 +402,11 @@
                 }
             };
             
-            // Add event listener for download Excel button
             document.getElementById('downloadExcelBtn').onclick = () => {
                 downloadActivitiesExcel(filteredEntries, selectedEmployee, startDate, endDate);
             };
         }
         
-        // Download activities as Excel
         function downloadActivitiesExcel(entries, employee, startDate, endDate) {
             try {
                 if (!employee || !entries || entries.length === 0) {
@@ -474,7 +414,6 @@
                     return;
                 }
                 
-                // Prepare data for Excel
                 const excelData = entries.map(entry => {
                     const date = new Date(entry.clock_in);
                     const dateStr = date.toLocaleDateString('en-US', {
@@ -515,7 +454,6 @@
                     };
                 });
                 
-                // Add summary row
                 const totalHours = entries.reduce((sum, entry) => {
                     return sum + (entry.hours_worked || 0);
                 }, 0);
@@ -530,24 +468,20 @@
                     'Store': `${completedShifts} completed`
                 });
                 
-                // Create workbook
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.json_to_sheet(excelData);
                 
-                // Set column widths
                 ws['!cols'] = [
-                    { wch: 15 },  // Date
-                    { wch: 12 },  // Day
-                    { wch: 12 },  // Clock In
-                    { wch: 12 },  // Clock Out
-                    { wch: 12 },  // Hours Worked
-                    { wch: 15 }   // Store
+                    { wch: 15 },
+                    { wch: 12 },
+                    { wch: 12 },
+                    { wch: 12 },
+                    { wch: 12 },
+                    { wch: 15 }
                 ];
                 
-                // Add worksheet to workbook
                 XLSX.utils.book_append_sheet(wb, ws, 'Activities');
                 
-                // Generate filename
                 let filename = `${employee.name.replace(/[^a-zA-Z0-9_-]/g, '_')}_Activities`;
                 if (startDate && endDate) {
                     const startStr = new Date(startDate).toISOString().split('T')[0];
@@ -562,7 +496,6 @@
                 }
                 filename += '.xlsx';
                 
-                // Download
                 XLSX.writeFile(wb, filename);
                 
                 console.log('Excel file downloaded successfully:', filename);
@@ -573,9 +506,7 @@
             }
         }
         
-        // Load and display employee activities with date filter
         async function loadEmployeeActivitiesWithFilter(employeeId, startDate, endDate) {
-            // Filter entries by date range
             let filteredEntries = allEntries;
             
             if (startDate || endDate) {
@@ -599,7 +530,6 @@
                 });
             }
             
-            // Calculate total hours from filtered entries
             let totalHours = 0;
             filteredEntries.forEach(entry => {
                 if (entry.hours_worked) {
@@ -607,34 +537,24 @@
                 }
             });
             
-            // Display employee info with filtered total hours
             displayEmployeeInfo(selectedEmployee, totalHours);
-            
-            // Display statistics with filtered entries
             displayStatistics(filteredEntries);
-            
-            // Display activities table with filtered entries and dates for header display
             displayActivities(filteredEntries, startDate, endDate);
         }
         
-        // Check session
         const session = loadSession();
         if (!session || session.role !== 'manager') {
             window.location = 'index.html';
         }
         
-        // Load all employees on page load
         loadAllEmployees().then(() => {
-            // Check if employeeId is provided in URL
             const urlParams = new URLSearchParams(window.location.search);
             const employeeId = urlParams.get('employeeId');
             
             if (employeeId) {
-                // Auto-load activities for the specified employee
                 loadEmployeeActivities(employeeId);
             } else {
-                // No employee ID in URL - show empty state
-                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('emptyState').classList.remove('hidden');
             }
         });
     </script>

@@ -4,27 +4,101 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>EOD Reports — TimeTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/css/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3B82F6',
+                            hover: '#2563EB'
+                        },
+                        secondary: '#64748B',
+                        light: '#F8FAFC',
+                        'card-border': '#E2E8F0',
+                        'input-border': '#CBD5E1'
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .page-fade-in {
+            animation: fadeInPage 0.6s ease forwards;
+        }
+    </style>
 </head>
-<body>
-    <div class="navbar">
-        <div class="nav-left">
-            <div class="logo">⏰ TimeTrack</div>
-            <nav class="nav-links">
-                <a href="manager.html">Manager Dashboard</a>
-            </nav>
-        </div>
-        <div class="nav-right">
-            
-            <a href="#" class="btn-logout" onclick="logoutApp()">Logout</a>
-        </div>
-    </div>
-    <div class="container">
-        <h2 id="storeTitle">End of Day Reports</h2>
-        <div style="margin-top:12px">
-            <button id="backBtn" class="bulk-update-btn" style="background:#6c757d">← Back to Store</button>
-        </div>
-        <div id="eodListContainer" style="margin-top:20px"></div>
+<body class="bg-light font-sans antialiased text-slate-800">
+    <div id="app-container" class="min-h-screen pb-12">
+        <header id="header" class="sticky top-0 z-50 w-full">
+            <div class="w-[95%] max-w-7xl mx-auto mt-4 bg-gradient-to-r from-blue-600 to-blue-700 backdrop-blur-xl rounded-2xl shadow-2xl border border-blue-400/30">
+                <div class="flex items-center justify-between px-10 py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white rounded-xl p-2.5 flex items-center justify-center hover:scale-110 transition-transform duration-200 shadow-lg">
+                            <i class="fa-solid fa-clock text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-white">TimeTrack</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <nav class="hidden md:flex items-center space-x-3 bg-blue-700/20 px-3 py-2 rounded-xl backdrop-blur-sm">
+                            <a href="manager.html" class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-chart-pie mr-2"></i>
+                                Manager Dashboard
+                            </a>
+                        </nav>
+                        <a href="super-admin.html" id="backToSuperAdmin" class="hidden md:flex items-center px-4 py-2 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 mr-4">
+                            <i class="fa-solid fa-arrow-left mr-2"></i>
+                            Back to Super Admin
+                        </a>
+                        <button class="hidden md:flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform border border-white/20" onclick="logoutApp()">
+                            <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>
+                            Logout
+                        </button>
+                        <button class="md:hidden text-white hover:text-blue-200 transition-colors duration-200">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content" class="page-fade-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12">
+            <div class="mb-8 bg-gradient-to-r from-slate-50 to-blue-50 p-8 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 rounded-2xl shadow-lg">
+                        <i class="fa-solid fa-calendar-check text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 id="storeTitle" class="text-3xl font-bold text-slate-900 mb-2">End of Day Reports</h1>
+                        <p class="text-slate-600">View all EOD submissions for this store</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <button id="backBtn" class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 hover:shadow-lg hover:scale-105 transition-all duration-200">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Back to Store
+                </button>
+            </div>
+
+            <div id="eodListContainer" class="mt-6"></div>
+        </main>
     </div>
     <script src="static/js/script.js"></script>
 </body>

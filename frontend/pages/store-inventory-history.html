@@ -4,8 +4,35 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Inventory History — TimeTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/css/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3B82F6',
+                            hover: '#2563EB'
+                        },
+                        secondary: '#64748B',
+                        light: '#F8FAFC',
+                        'card-border': '#E2E8F0',
+                        'input-border': '#CBD5E1'
+                    }
+                }
+            }
+        };
+    </script>
     <style>
         .inventory-grid-container {
             overflow-x: auto;
@@ -67,35 +94,94 @@
             color: #adb5bd;
         }
     </style>
+    <style>
+        ::-webkit-scrollbar { display: none; }
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .page-fade-in {
+            animation: fadeInPage 0.6s ease forwards;
+        }
+    </style>
 </head>
-<body>
-    <div class="navbar">
-        <div class="nav-left">
-            <div class="logo">⏰ TimeTrack</div>
-            <nav class="nav-links">
-                <a href="manager.html">Manager Dashboard</a>
-            </nav>
-        </div>
-        <div class="nav-right">
-            <a href="#" class="btn-logout" onclick="logoutApp()">Logout</a>
-        </div>
-    </div>
-    
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h2 id="storeTitle" style="margin: 0;">Inventory History</h2>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button id="refreshBtn" class="bulk-update-btn" style="background:#17a2b8;margin-top:0;" onclick="loadInventoryHistory(); showSuccess('History refreshed');" title="Refresh history">🔄 Refresh</button>
-                <span id="autoRefreshIndicator" style="font-size:0.85rem;color:#6c757d;margin-left:4px;" title="Auto-refreshing every 10 seconds">🔄 Auto-refresh ON</span>
-                <button id="downloadExcelBtn" class="bulk-update-btn" style="background:#28a745;margin-top:0;display:none;" onclick="downloadInventoryExcel();">📥 Download Excel</button>
+<body class="bg-light font-sans antialiased text-slate-800">
+    <div id="app-container" class="min-h-screen pb-12">
+        <header id="header" class="sticky top-0 z-50 w-full">
+            <div class="w-[95%] max-w-7xl mx-auto mt-4 bg-gradient-to-r from-blue-600 to-blue-700 backdrop-blur-xl rounded-2xl shadow-2xl border border-blue-400/30">
+                <div class="flex items-center justify-between px-10 py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white rounded-xl p-2.5 flex items-center justify-center hover:scale-110 transition-transform duration-200 shadow-lg">
+                            <i class="fa-solid fa-clock text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-white">TimeTrack</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <nav class="hidden md:flex items-center space-x-3 bg-blue-700/20 px-3 py-2 rounded-xl backdrop-blur-sm">
+                            <a href="manager.html" class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-chart-pie mr-2"></i>
+                                Manager Dashboard
+                            </a>
+                        </nav>
+                        <a href="super-admin.html" id="backToSuperAdmin" class="hidden md:flex items-center px-4 py-2 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 mr-4">
+                            <i class="fa-solid fa-arrow-left mr-2"></i>
+                            Back to Super Admin
+                        </a>
+                        <button class="hidden md:flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform border border-white/20" onclick="logoutApp()">
+                            <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>
+                            Logout
+                        </button>
+                        <button class="md:hidden text-white hover:text-blue-200 transition-colors duration-200">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div style="margin-top:12px">
-            <button id="backBtn" class="bulk-update-btn" style="background:#6c757d">← Back to Store</button>
-            <button id="backToCardsBtn" class="bulk-update-btn" style="background:#6c757d;margin-left:12px;display:none;" onclick="backToCards();">← Back</button>
-        </div>
-        <div id="historyListContainer" style="margin-top:20px"></div>
-        <div id="gridViewContainer" style="margin-top:20px; display: none;"></div>
+        </header>
+
+        <main id="main-content" class="page-fade-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12">
+            <div class="mb-8 bg-gradient-to-r from-slate-50 to-blue-50 p-8 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-gradient-to-br from-blue-600 to-blue-700 p-4 rounded-2xl shadow-lg">
+                            <i class="fa-solid fa-boxes text-white text-2xl"></i>
+                        </div>
+                        <div>
+                            <h1 id="storeTitle" class="text-3xl font-bold text-slate-900 mb-2">Inventory History</h1>
+                            <p class="text-slate-600">View historical inventory snapshots</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <button id="refreshBtn" class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm" onclick="loadInventoryHistory(); showSuccess('History refreshed');" title="Refresh history">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+                        <span id="autoRefreshIndicator" class="text-xs text-slate-600 flex items-center gap-1.5" title="Auto-refreshing every 10 seconds">
+                            <i class="fa-solid fa-circle text-green-500 text-[8px] animate-pulse"></i>
+                            Auto-refresh ON
+                        </span>
+                        <button id="downloadExcelBtn" class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm hidden" onclick="downloadInventoryExcel();">
+                            <i class="fa-solid fa-download"></i>
+                            Download Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6 flex gap-3">
+                <button id="backBtn" class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 hover:shadow-lg hover:scale-105 transition-all duration-200">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Back to Store
+                </button>
+                <button id="backToCardsBtn" class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border-2 border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 hover:shadow-lg hover:scale-105 transition-all duration-200 hidden" onclick="backToCards();">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Back
+                </button>
+            </div>
+
+            <div id="historyListContainer" class="mt-6"></div>
+            <div id="gridViewContainer" class="mt-6 hidden"></div>
+        </main>
     </div>
     
     <script src="static/js/script.js"></script>
@@ -111,6 +197,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         const storeName = urlParams.get('store') || 'Store';
         const viewAs = urlParams.get('view_as');
+        
+        // Show "Back to Super Admin" button if view_as is present
+        const backToSuperAdmin = document.getElementById('backToSuperAdmin');
+        if (backToSuperAdmin && viewAs && session?.role === 'super-admin') {
+            backToSuperAdmin.style.display = "flex";
+        }
         
         // Update title
         document.getElementById('storeTitle').textContent = `Inventory History — ${storeName}`;
@@ -143,15 +235,21 @@
             const gridContainer = document.getElementById('gridViewContainer');
             
             // Show loading state
-            container.innerHTML = '<div class="no-data" style="text-align:center;padding:40px;">Loading inventory history...</div>';
+            container.innerHTML = '<div class="bg-white rounded-xl border border-card-border shadow-sm p-12 text-center"><p class="text-slate-600 text-lg">Loading inventory history...</p></div>';
             
             try {
-                console.log('Loading inventory history for store:', storeName);
-                allSnapshots = await apiGet('/inventory/history', { store_id: storeName });
+                // Use storeName from URL, but also check session for consistency
+                const session = loadSession();
+                const storeIdToUse = storeName || session?.storeId || 'Store';
+                console.log('Loading inventory history for store:', storeIdToUse, '(from URL:', storeName, ', from session:', session?.storeId, ')');
+                allSnapshots = await apiGet('/inventory/history', { store_id: storeIdToUse });
                 console.log('Received snapshots:', allSnapshots.length);
+                if (allSnapshots.length > 0) {
+                    console.log('First snapshot date:', allSnapshots[0].snapshot_date);
+                }
                 
                 if (allSnapshots.length === 0) {
-                    container.innerHTML = '<div class="no-data" style="text-align:center;padding:40px;">No inventory history found for this store.</div>';
+                    container.innerHTML = '<div class="bg-white rounded-xl border border-card-border shadow-sm p-12 text-center"><p class="text-slate-600 text-lg">No inventory history found for this store.</p></div>';
                     gridContainer.style.display = 'none';
                     return;
                 }
@@ -174,7 +272,7 @@
                 
             } catch (err) {
                 console.error('Failed to load inventory history:', err);
-                container.innerHTML = '<div class="no-data" style="text-align:center;padding:40px;color:#dc3545;">Failed to load inventory history. Please try again.</div>';
+                container.innerHTML = '<div class="bg-red-50 rounded-xl border border-red-200 shadow-sm p-12 text-center"><p class="text-red-600 text-lg font-semibold">Failed to load inventory history. Please try again.</p></div>';
                 gridContainer.style.display = 'none';
             }
         }
@@ -261,7 +359,7 @@
         // Render period cards
         function renderPeriodCards(periods, container) {
             if (periods.length === 0) {
-                container.innerHTML = '<div class="no-data" style="text-align:center;padding:40px;">No inventory periods found.</div>';
+                container.innerHTML = '<div class="bg-white rounded-xl border border-card-border shadow-sm p-12 text-center"><p class="text-slate-600 text-lg">No inventory periods found.</p></div>';
                 return;
             }
             
@@ -274,42 +372,38 @@
             };
             
             container.innerHTML = `
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     ${periods.map((period, idx) => {
                         const startStr = formatDate(period.startDate);
                         const endStr = formatDate(period.endDate);
                         const snapshotCount = period.snapshots.length;
                             
                             return `
-                            <div style="background:white;padding:24px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);border:1px solid #e9ecef;cursor:pointer;transition:all 0.2s ease;"
-                                 onmouseover="this.style.boxShadow='0 6px 16px rgba(0,0,0,0.15)';this.style.transform='translateY(-2px)'"
-                                 onmouseout="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)';this.style.transform='none'"
+                            <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm hover:shadow-lg hover:-translate-y-1 cursor-pointer transition-all duration-200"
                                  onclick="viewPeriod(${idx})">
-                                <h3 style="margin:0 0 12px 0;color:#2c3e50;font-size:1.3rem;font-weight:700;">${startStr} - ${endStr}</h3>
-                                <p style="margin:0;color:#6c757d;font-size:0.9rem;">${snapshotCount} day${snapshotCount !== 1 ? 's' : ''} of inventory data</p>
-                                <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e9ecef;">
-                                    <div style="display:flex;gap:12px;align-items:center;">
+                                <h3 class="text-xl font-bold text-slate-900 mb-3">${startStr} - ${endStr}</h3>
+                                <p class="text-sm text-slate-600 mb-4">${snapshotCount} day${snapshotCount !== 1 ? 's' : ''} of inventory data</p>
+                                <div class="pt-4 border-t border-slate-200">
+                                    <div class="flex gap-3">
                                         <button 
                                             onclick="event.stopPropagation();viewPeriod(${idx})"
-                                            style="flex:1;background:#007bff;color:white;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.2s ease;"
-                                            onmouseover="this.style.background='#0056b3'"
-                                            onmouseout="this.style.background='#007bff'">
-                                            👁️ View
+                                            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-md hover:scale-105 transition-all duration-200">
+                                            <i class="fa-solid fa-eye"></i>
+                                            View
                                         </button>
                                         <button 
                                             onclick="event.stopPropagation();downloadPeriodExcel(${idx})"
-                                            style="flex:1;background:#28a745;color:white;border:none;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.9rem;transition:all 0.2s ease;"
-                                            onmouseover="this.style.background='#218838'"
-                                            onmouseout="this.style.background='#28a745'">
-                                            📥 Download
+                                            class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 hover:shadow-md hover:scale-105 transition-all duration-200">
+                                            <i class="fa-solid fa-download"></i>
+                                            Download
                                         </button>
                                     </div>
-                                    </div>
                                 </div>
+                            </div>
                             `;
                         }).join('')}
-                    </div>
-                `;
+                </div>
+            `;
         }
         
         // View a specific period
@@ -701,6 +795,14 @@
         
         // Load data
         loadInventoryHistory();
+        
+        // Page fade-in animation
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            requestAnimationFrame(() => {
+                mainContent.classList.add('page-fade-in');
+            });
+        }
     </script>
 </body>
 </html>

@@ -17,6 +17,8 @@ def list_inventory_history():
     # Get all snapshots for this store, sorted by date (newest first)
     snapshots = InventoryHistory.query.filter_by(store_id=store_id).order_by(InventoryHistory.snapshot_date.desc()).all()
     
+    print(f"Loading inventory history for store_id={store_id}, found {len(snapshots)} snapshots")
+    
     return jsonify([snapshot.to_dict() for snapshot in snapshots])
 
 @bp.post("/snapshot")
@@ -88,28 +90,33 @@ def create_inventory_snapshot():
         today_dt = datetime.now()
         today_dt = datetime(today_dt.year, today_dt.month, today_dt.day, 0, 0, 0)
     
+    # Debug logging
+    print(f"Creating snapshot: store_id={store_id}, snapshot_date={snapshot_dt.date()}, today_date={today_dt.date()}")
+    print(f"Number of items to snapshot: {len(normalized_items)}")
+    
     # Check if snapshot already exists for this date
     existing = InventoryHistory.query.filter_by(store_id=store_id, snapshot_date=snapshot_dt).first()
     
     if existing:
         # Only allow updating today's snapshot - prevent editing past days
         if snapshot_dt < today_dt:
-            return jsonify({
-                "error": f"Cannot update inventory history for past dates. Snapshot date ({snapshot_dt.date()}) is before today ({today_dt.date()})."
-            }), 403
+            error_msg = f"Cannot update inventory history for past dates. Snapshot date ({snapshot_dt.date()}) is before today ({today_dt.date()})."
+            print(f"ERROR: {error_msg}")
+            return jsonify({"error": error_msg}), 403
         
         # Update existing snapshot (only allowed for today)
         existing.set_items(normalized_items)
         existing.updated_at = datetime.now()
         db.session.commit()
         
+        print(f"Snapshot updated: id={existing.id}")
         return jsonify({"message": "Snapshot updated", "id": str(existing.id)}), 200
     else:
         # Prevent creating snapshots for past dates
         if snapshot_dt < today_dt:
-            return jsonify({
-                "error": f"Cannot create inventory snapshot for past dates. Snapshot date ({snapshot_dt.date()}) is before today ({today_dt.date()})."
-            }), 403
+            error_msg = f"Cannot create inventory snapshot for past dates. Snapshot date ({snapshot_dt.date()}) is before today ({today_dt.date()})."
+            print(f"ERROR: {error_msg}")
+            return jsonify({"error": error_msg}), 403
         
         # Create new snapshot (only for today or future dates)
         snapshot = InventoryHistory(
@@ -121,4 +128,5 @@ def create_inventory_snapshot():
         db.session.add(snapshot)
         db.session.commit()
         
+        print(f"Snapshot created: id={snapshot.id}, store_id={store_id}, date={snapshot_dt.date()}, items_count={len(normalized_items)}")
         return jsonify({"message": "Snapshot created", "id": str(snapshot.id)}), 201

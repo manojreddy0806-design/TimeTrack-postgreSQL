@@ -1,252 +1,204 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>List Employees — TimeTrack</title>
-    <link rel="stylesheet" href="static/css/style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3B82F6',
+                            hover: '#2563EB'
+                        },
+                        secondary: '#64748B',
+                        light: '#F8FAFC',
+                        'card-border': '#E2E8F0',
+                        'input-border': '#CBD5E1',
+                        'warning-bg': '#FEF9C3',
+                        'warning-text': '#854D0E',
+                        'warning-icon': '#FBBF24',
+                        'accent-orange': {
+                            DEFAULT: '#F97316',
+                            hover: '#EA580C'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
     <style>
-        .employees-container {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
+        ::-webkit-scrollbar { display: none; }
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .filter-section {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
+        .page-fade-in {
+            animation: fadeInPage 0.6s ease forwards;
         }
-        .filter-group {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            flex-wrap: wrap;
+        .nav-link-active {
+            color: #1d4ed8 !important;
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 16px rgba(15, 23, 42, 0.18);
         }
-        .filter-group label {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        .filter-group select {
-            padding: 10px 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            min-width: 200px;
-        }
-        .employees-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
-        }
-        .employee-card {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border: 1px solid #e9ecef;
-            transition: all 0.2s ease;
-        }
-        .employee-card:hover {
-            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
-        }
-        .employee-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-        .employee-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #e9ecef;
-        }
-        .employee-avatar.no-face {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            font-weight: 700;
-        }
-        .employee-info {
-            flex: 1;
-        }
-        .employee-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #2c3e50;
-            margin: 0 0 4px 0;
-        }
-        .employee-role {
-            color: #6c757d;
-            font-size: 0.9rem;
-            margin: 0;
-        }
-        .employee-details {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #e9ecef;
-        }
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
-        .detail-label {
-            color: #6c757d;
-            font-weight: 600;
-        }
-        .detail-value {
-            color: #2c3e50;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        .badge-success {
-            background: #d4edda;
-            color: #155724;
-        }
-        .badge-warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .badge-info {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        .empty-state-text {
-            color: #6c757d;
-            font-size: 1.1rem;
-            margin-bottom: 24px;
-        }
-        .btn {
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-        }
-        .stats-bar {
-            background: white;
-            padding: 20px 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
-            display: flex;
-            gap: 32px;
-            flex-wrap: wrap;
-        }
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .stat-icon {
-            font-size: 2rem;
-        }
-        .stat-info {
-            display: flex;
-            flex-direction: column;
-        }
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-        .stat-label {
-            font-size: 0.85rem;
-            color: #6c757d;
+        .nav-link-active:hover {
+            color: white !important;
+            background-color: rgba(59, 130, 246, 0.5) !important;
         }
     </style>
 </head>
-<body>
-    <div class="navbar">
-        <div class="nav-left">
-            <div class="logo">⏰ TimeTrack</div>
-            <nav class="nav-links">
-                <a href="manager.html">Dashboard</a>
-                <a href="add-employee.html">Add Employee</a>
-                <a href="list-employees.html" class="active">List Employees</a>
-            </nav>
-        </div>
-        <div class="nav-right">
-            <a href="#" class="btn-logout" onclick="logoutApp()">Logout</a>
-        </div>
-    </div>
-    
-    <div class="employees-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 style="margin: 0; color: #2c3e50;">All Employees</h2>
-            <a href="add-employee.html" class="btn btn-primary">+ Add Employee</a>
-        </div>
-        
-
-        <div class="filter-section">
-            <div class="filter-group">
-                <label for="searchInput">🔍 Search Employee:</label>
-                <input type="text" id="searchInput" placeholder="Type employee name to search..." 
-                       style="padding: 10px 16px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; min-width: 300px;">
+<body class="bg-light font-sans antialiased text-slate-800">
+    <div id="app-container" class="min-h-screen pb-12">
+        <header id="header" class="sticky top-0 z-50 w-full">
+            <div class="w-[95%] max-w-7xl mx-auto mt-4 bg-gradient-to-r from-blue-600 to-blue-700 backdrop-blur-xl rounded-2xl shadow-2xl border border-blue-400/30">
+                <div class="flex items-center justify-between px-10 py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white rounded-xl p-2.5 flex items-center justify-center hover:scale-110 transition-transform duration-200 shadow-lg">
+                            <i class="fa-solid fa-clock text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-white">TimeTrack</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <nav id="primaryNav" class="hidden md:flex items-center space-x-3 bg-blue-700/20 px-3 py-2 rounded-xl backdrop-blur-sm">
+                            <a href="manager.html" data-nav-link class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-chart-pie mr-2"></i>
+                                Dashboard
+                            </a>
+                            <a href="add-employee.html" data-nav-link class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-user-plus mr-2"></i>
+                                Add Employee
+                            </a>
+                            <a href="list-employees.html" data-nav-link class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-users mr-2"></i>
+                                Employees
+                            </a>
+                        </nav>
+                        <button class="hidden md:flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform border border-white/20" onclick="logoutApp()">
+                            <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>
+                            Logout
+                        </button>
+                        <button class="md:hidden text-white hover:text-blue-200 transition-colors duration-200">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div id="loadingState" class="loading">
-            <p>Loading employees...</p>
-        </div>
-        
-        <div id="employeesGrid" class="employees-grid" style="display: none;"></div>
-        
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <div class="empty-state-icon">👤</div>
-            <div class="empty-state-text">No employees found</div>
-            <a href="add-employee.html" class="btn btn-primary">Add Your First Employee</a>
-        </div>
+        </header>
+
+        <main id="main-content" class="page-fade-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12">
+            <div id="page-header" class="mb-8 bg-gradient-to-r from-slate-50 to-blue-50 p-8 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-primary/10 p-3 rounded-full">
+                            <i class="fa-solid fa-users text-primary text-2xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-slate-900 mb-1">All Employees</h1>
+                            <p class="text-base text-secondary leading-relaxed">Manage your team and track employee information with secure biometric authentication.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stats-section" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p id="totalEmployeesCount" class="text-3xl font-bold text-slate-900 mb-1">0</p>
+                            <p class="text-sm font-medium text-slate-600">Total Employees</p>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-lg hover:scale-110 transition-transform duration-200">
+                            <i class="fa-solid fa-users text-2xl text-blue-600"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p id="activeEmployeesCount" class="text-3xl font-bold text-slate-900 mb-1">0</p>
+                            <p class="text-sm font-medium text-slate-600">Currently Active</p>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-lg hover:scale-110 transition-transform duration-200">
+                            <i class="fa-solid fa-user-check text-2xl text-green-600"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="filter-section" class="bg-white p-8 rounded-xl border border-card-border shadow-sm mb-8">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:space-x-6 space-y-4 lg:space-y-0">
+                    <label for="searchInput" class="text-base font-semibold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-search mr-3 text-primary text-lg"></i>
+                        Search Employees
+                    </label>
+                    <input type="text" id="searchInput" placeholder="Search by name, role, or department..." class="flex-1 px-5 py-3.5 text-base bg-slate-50 border border-input-border rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all duration-300 hover:border-slate-400 hover:shadow-md focus:shadow-lg focus:scale-[1.01]">
+                </div>
+            </div>
+
+            <div id="loadingState" class="text-center py-12 bg-white rounded-xl border border-card-border shadow-sm">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-primary mb-4"></i>
+                <p class="text-secondary">Loading employees...</p>
+            </div>
+
+            <div id="emptyState" class="hidden text-center py-16 bg-white rounded-xl border border-card-border shadow-sm">
+                <div class="text-5xl mb-4">👤</div>
+                <p class="text-secondary text-lg mb-6">No employees found</p>
+                <a href="add-employee.html" class="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-md hover:bg-primary-hover transition shadow-sm">
+                    <i class="fa-solid fa-user-plus mr-2"></i>
+                    Add Your First Employee
+                </a>
+            </div>
+
+            <div id="employeesGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </main>
     </div>
-    
+
     <script src="static/js/script.js"></script>
     <script>
+        const mainContent = document.getElementById('main-content');
+
+        (function initPageTransitions() {
+            if (mainContent) {
+                requestAnimationFrame(() => {
+                    mainContent.classList.add('page-fade-in');
+                });
+                mainContent.addEventListener('animationend', (event) => {
+                    if (event.animationName === 'fadeInPage') {
+                        mainContent.classList.remove('page-fade-in');
+                    }
+                });
+            }
+
+            const nav = document.getElementById('primaryNav');
+            if (!nav) {
+                return;
+            }
+
+            const links = Array.from(nav.querySelectorAll('a[data-nav-link]'));
+            if (!links.length) {
+                return;
+            }
+
+            const currentPath = window.location.pathname.split('/').pop();
+            const activeLink = links.find(link => link.getAttribute('href').split('/').pop() === currentPath) || links[0];
+            if (activeLink) {
+                activeLink.classList.add('nav-link-active');
+            }
+        })();
+
         let allEmployees = [];
-        let allStores = [];
-        
-        // Get initials from name
+
         function getInitials(name) {
             return name
                 .split(' ')
@@ -255,126 +207,134 @@
                 .toUpperCase()
                 .substring(0, 2);
         }
-        
 
-        
-        // Load all employees
         async function loadEmployees() {
             try {
-                document.getElementById('loadingState').style.display = 'block';
-                document.getElementById('employeesGrid').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'none';
-                
-                // Load all employees (no store filter to get all)
+                showLoadingState(true);
                 allEmployees = await apiGet('/employees/');
-                
                 renderEmployees();
-                
             } catch (err) {
                 console.error('Failed to load employees:', err);
-                document.getElementById('loadingState').innerHTML = '<p style="color: #dc3545;">Failed to load employees</p>';
+                const loadingState = document.getElementById('loadingState');
+                loadingState.classList.remove('hidden');
+                loadingState.innerHTML = '<p class="text-red-600 font-semibold">Failed to load employees</p>';
             }
         }
-        
 
-        
-        // Render employees
+        function showLoadingState(isLoading) {
+            const loadingState = document.getElementById('loadingState');
+            const employeesGrid = document.getElementById('employeesGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (isLoading) {
+                loadingState.classList.remove('hidden');
+                employeesGrid.classList.add('hidden');
+                emptyState.classList.add('hidden');
+            } else {
+                loadingState.classList.add('hidden');
+            }
+        }
+
+        function updateStats(filteredEmployees) {
+            const totalEmployeesCount = document.getElementById('totalEmployeesCount');
+            const activeEmployeesCount = document.getElementById('activeEmployeesCount');
+
+            totalEmployeesCount.textContent = allEmployees.length.toString();
+
+            const activeCount = allEmployees.filter(emp => {
+                const status = (emp.status || emp.current_status || '').toLowerCase();
+                return status === 'active' || status === 'working' || status === 'present';
+            }).length;
+            activeEmployeesCount.textContent = activeCount.toString();
+        }
+
         function renderEmployees() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-            
-            // Filter employees by search term
             let filteredEmployees = allEmployees;
-            
+
             if (searchTerm) {
-                filteredEmployees = filteredEmployees.filter(emp => 
+                filteredEmployees = filteredEmployees.filter(emp =>
                     emp.name.toLowerCase().includes(searchTerm) ||
                     (emp.role && emp.role.toLowerCase().includes(searchTerm)) ||
-                    (emp.store_id && emp.store_id.toLowerCase().includes(searchTerm))
+                    (emp.store_id && String(emp.store_id).toLowerCase().includes(searchTerm))
                 );
             }
-            
-            document.getElementById('loadingState').style.display = 'none';
-            
+
+            updateStats(filteredEmployees);
+            showLoadingState(false);
+
+            const employeesGrid = document.getElementById('employeesGrid');
+            const emptyState = document.getElementById('emptyState');
+
             if (filteredEmployees.length === 0) {
-                document.getElementById('employeesGrid').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'block';
+                employeesGrid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
                 return;
             }
-            
-            const grid = document.getElementById('employeesGrid');
-            grid.style.display = 'grid';
-            document.getElementById('emptyState').style.display = 'none';
-            
-            grid.innerHTML = filteredEmployees.map(emp => {
+
+            emptyState.classList.add('hidden');
+            employeesGrid.classList.remove('hidden');
+
+            employeesGrid.innerHTML = filteredEmployees.map(emp => {
                 const initials = getInitials(emp.name);
-                const faceRegistered = emp.face_registered || false;
                 const faceImage = emp.face_image || null;
-                
-                let avatarHtml;
-                if (faceImage) {
-                    avatarHtml = `<img src="${faceImage}" alt="${escapeHtml(emp.name)}" class="employee-avatar">`;
-                } else {
-                    avatarHtml = `<div class="employee-avatar no-face">${initials}</div>`;
-                }
-                
+
+                const avatarHtml = faceImage
+                    ? `<img src="${faceImage}" alt="${escapeHtml(emp.name)}" class="w-16 h-16 rounded-full object-cover border-[3px] border-slate-200">`
+                    : `<div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">${initials}</div>`;
+
+                const hourlyPay = (emp.hourly_pay !== undefined && emp.hourly_pay !== null)
+                    ? `$${Number(emp.hourly_pay).toFixed(2)}`
+                    : 'Not set';
+
+                const phoneNumber = emp.phone_number ? escapeHtml(emp.phone_number) : 'Not provided';
+
                 return `
-                    <div class="employee-card" onclick="window.location.href='employee-activities.html?employeeId=${emp.employee_id}'" style="cursor: pointer;">
-                        <div class="employee-header">
+                    <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] cursor-pointer" onclick="window.location.href='employee-activities.html?employeeId=${emp.employee_id}'">
+                        <div class="flex items-center space-x-4 mb-4">
                             ${avatarHtml}
-                            <div class="employee-info">
-                                <h3 class="employee-name">${escapeHtml(emp.name)}</h3>
-                                <p class="employee-role">${escapeHtml(emp.role || 'Employee')}</p>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-slate-900">${escapeHtml(emp.name)}</h3>
+                                <p class="text-sm text-secondary">${escapeHtml(emp.role || 'Employee')}</p>
                             </div>
                         </div>
-                    
-                        <div class="employee-details">
-                            ${emp.phone_number ? `
-                                <div class="detail-row">
-                                    <span class="detail-label">📞 Phone:</span>
-                                    <span class="detail-value">${escapeHtml(emp.phone_number)}</span>
-                                </div>
-                            ` : ''}
-                            ${emp.hourly_pay !== undefined && emp.hourly_pay !== null ? `
-                                <div class="detail-row">
-                                    <span class="detail-label">💰 Hourly Pay:</span>
-                                    <span class="detail-value">$${emp.hourly_pay.toFixed(2)}</span>
-                                </div>
-                            ` : ''}
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="font-medium text-slate-600 flex items-center gap-2"><i class="fa-solid fa-phone text-primary"></i>Phone</span>
+                                <span class="text-slate-900">${phoneNumber}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="font-medium text-slate-600 flex items-center gap-2"><i class="fa-solid fa-dollar-sign text-emerald-500"></i>Hourly Rate</span>
+                                <span class="text-slate-900 font-semibold">${hourlyPay}</span>
+                            </div>
                         </div>
-                    
-                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9ecef;" onclick="event.stopPropagation();">
-                            <button onclick="removeEmployee('${emp.employee_id}', '${escapeHtml(emp.name)}')" 
-                                    style="width: 100%; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;"
-                                    onmouseover="this.style.background='#c82333'" 
-                                    onmouseout="this.style.background='#dc3545'">
-                                🗑️ Remove Employee
+                        <div class="mt-4 pt-4 border-t border-card-border" onclick="event.stopPropagation();">
+                            <button
+                                onclick="removeEmployee('${emp.employee_id}', '${escapeHtml(emp.name)}')"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition shadow-sm">
+                                <i class="fa-solid fa-trash"></i>
+                                Remove Employee
                             </button>
                         </div>
                     </div>
                 `;
             }).join('');
         }
-        
-        // Remove employee function
+
         window.removeEmployee = async function(employeeId, employeeName) {
             if (!confirm(`Are you sure you want to remove ${employeeName}?\n\nThis action cannot be undone.`)) {
                 return;
             }
-            
+
             try {
-                const response = await fetch(`/api/employees/${employeeId}`, {
-                    method: 'DELETE'
-                });
-                
+                const response = await fetch(`/api/employees/${employeeId}`, { method: 'DELETE' });
                 if (!response.ok) {
                     throw new Error('Failed to delete employee');
                 }
-                
+
                 const result = await response.json();
-                
                 if (result.success) {
                     showSuccess(`${employeeName} has been removed successfully.`);
-                    // Reload employees
                     await loadEmployees();
                 } else {
                     showError('Failed to remove employee: ' + (result.error || 'Unknown error'));
@@ -384,17 +344,14 @@
                 showError('Failed to remove employee: ' + err.message);
             }
         };
-        
-        // Search input handler
+
         document.getElementById('searchInput').addEventListener('input', renderEmployees);
-        
-        // Check session
+
         const session = loadSession();
         if (!session || session.role !== 'manager') {
             window.location = 'index.html';
         }
-        
-        // Load data on page load
+
         loadEmployees();
     </script>
 </body>

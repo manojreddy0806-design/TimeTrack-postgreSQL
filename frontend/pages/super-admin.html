@@ -1,203 +1,149 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Dashboard — TimeTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="static/css/style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#3B82F6',
+                            hover: '#2563EB'
+                        },
+                        secondary: '#64748B',
+                        light: '#F8FAFC',
+                        'card-border': '#E2E8F0',
+                        'input-border': '#CBD5E1'
+                    }
+                }
+            }
+        };
+    </script>
     <style>
-        .managers-container {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
+        ::-webkit-scrollbar { display: none; }
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .filter-section {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
+        .page-fade-in {
+            animation: fadeInPage 0.6s ease forwards;
         }
-        .filter-group {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            flex-wrap: wrap;
+        .nav-link-active {
+            color: #1d4ed8 !important;
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 10px 16px rgba(15, 23, 42, 0.18);
         }
-        .filter-group label {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        .filter-group input {
-            padding: 10px 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            min-width: 300px;
-        }
-        .managers-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
-        }
-        .manager-card {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border: 1px solid #e9ecef;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-        .manager-card:hover {
-            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
-        }
-        .manager-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-        .manager-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            font-weight: 700;
-            border: 3px solid #e9ecef;
-        }
-        .manager-info {
-            flex: 1;
-        }
-        .manager-name {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #2c3e50;
-            margin: 0 0 4px 0;
-        }
-        .manager-username {
-            color: #6c757d;
-            font-size: 0.9rem;
-            margin: 0;
-        }
-        .manager-details {
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #e9ecef;
-        }
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
-        .detail-label {
-            color: #6c757d;
-            font-weight: 600;
-        }
-        .detail-value {
-            color: #2c3e50;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        .empty-state-text {
-            color: #6c757d;
-            font-size: 1.1rem;
-            margin-bottom: 24px;
-        }
-        .btn {
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-        .btn-danger:hover {
-            background: #c82333;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
+        .nav-link-active:hover {
+            color: white !important;
+            background-color: rgba(59, 130, 246, 0.5) !important;
         }
     </style>
 </head>
-<body>
-    <div class="navbar">
-        <div class="nav-left">
-            <div class="logo">⏰ TimeTrack</div>
-            <nav class="nav-links">
-                <a href="super-admin.html" class="active">Dashboard</a>
-                <a href="add-manager.html">Add Manager</a>
-            </nav>
-        </div>
-        <div class="nav-right">
-            <a href="#" class="btn-logout" onclick="logoutApp()">Logout</a>
-        </div>
-    </div>
-    
-    <div class="managers-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 style="margin: 0; color: #2c3e50;">Super Admin Dashboard — All Managers</h2>
-            <a href="add-manager.html" class="btn btn-primary">+ Add Manager</a>
-        </div>
-        
-        <div class="filter-section">
-            <div class="filter-group">
-                <label for="searchInput">🔍 Search Manager:</label>
-                <input type="text" id="searchInput" placeholder="Type manager name or username to search...">
+<body class="bg-light font-sans antialiased text-slate-800">
+    <div id="app-container" class="min-h-screen pb-12">
+        <header id="header" class="sticky top-0 z-50 w-full">
+            <div class="w-[95%] max-w-7xl mx-auto mt-4 bg-gradient-to-r from-blue-600 to-blue-700 backdrop-blur-xl rounded-2xl shadow-2xl border border-blue-400/30">
+                <div class="flex items-center justify-between px-10 py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white rounded-xl p-2.5 flex items-center justify-center hover:scale-110 transition-transform duration-200 shadow-lg">
+                            <i class="fa-solid fa-clock text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-white">TimeTrack</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <nav class="hidden md:flex items-center space-x-3 bg-blue-700/20 px-3 py-2 rounded-xl backdrop-blur-sm">
+                            <a href="super-admin.html" data-nav-link class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-chart-pie mr-2"></i>
+                                Dashboard
+                            </a>
+                            <a href="add-manager.html" data-nav-link class="relative z-10 flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform">
+                                <i class="fa-solid fa-user-plus mr-2"></i>
+                                Add Manager
+                            </a>
+                        </nav>
+                        <button class="hidden md:flex items-center px-6 py-2.5 text-sm font-semibold text-blue-50 hover:text-white hover:bg-blue-400/50 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform border border-white/20" onclick="logoutApp()">
+                            <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>
+                            Logout
+                        </button>
+                        <button class="md:hidden text-white hover:text-blue-200 transition-colors duration-200">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div id="loadingState" class="loading">
-            <p>Loading managers...</p>
-        </div>
-        
-        <div id="managersGrid" class="managers-grid" style="display: none;"></div>
-        
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <div class="empty-state-icon">👤</div>
-            <div class="empty-state-text">No managers found</div>
-            <a href="add-manager.html" class="btn btn-primary">Add Your First Manager</a>
-        </div>
+        </header>
+
+        <main id="main-content" class="page-fade-in max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-3xl font-bold text-slate-900">Super Admin Dashboard — All Managers</h1>
+                <a href="add-manager.html" class="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-primary-hover hover:shadow-lg hover:scale-105 transition-all duration-200 shadow-sm">
+                    <i class="fa-solid fa-plus"></i>
+                    Add Manager
+                </a>
+            </div>
+            
+            <div class="bg-white p-8 rounded-xl border border-card-border shadow-sm mb-8">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:space-x-6 space-y-4 lg:space-y-0">
+                    <label for="searchInput" class="text-base font-semibold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-search mr-3 text-primary text-lg"></i>
+                        Search Manager
+                    </label>
+                    <input type="text" id="searchInput" placeholder="Type manager name or username to search..." class="flex-1 px-5 py-3.5 text-base bg-slate-50 border border-input-border rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all duration-300 hover:border-slate-400 hover:shadow-md focus:shadow-lg focus:scale-[1.01]">
+                </div>
+            </div>
+            
+            <div id="loadingState" class="text-center py-12 bg-white rounded-xl border border-card-border shadow-sm">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-primary mb-4"></i>
+                <p class="text-secondary">Loading managers...</p>
+            </div>
+            
+            <div id="managersGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            
+            <div id="emptyState" class="hidden text-center py-16 bg-white rounded-xl border border-card-border shadow-sm">
+                <div class="text-5xl mb-4">👤</div>
+                <p class="text-secondary text-lg mb-6">No managers found</p>
+                <a href="add-manager.html" class="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-primary rounded-md hover:bg-primary-hover transition shadow-sm">
+                    <i class="fa-solid fa-user-plus mr-2"></i>
+                    Add Your First Manager
+                </a>
+            </div>
+        </main>
     </div>
     
     <script src="static/js/script.js"></script>
     <script>
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            requestAnimationFrame(() => {
+                mainContent.classList.add('page-fade-in');
+            });
+        }
+
+        const nav = document.querySelector('nav');
+        if (nav) {
+            const links = Array.from(nav.querySelectorAll('a[data-nav-link]'));
+            const currentPath = window.location.pathname.split('/').pop();
+            const activeLink = links.find(link => link.getAttribute('href').split('/').pop() === currentPath) || links[0];
+            if (activeLink) {
+                activeLink.classList.add('nav-link-active');
+            }
+        }
+
         let allManagers = [];
         
-        // Get initials from name
         function getInitials(name) {
             return name
                 .split(' ')
@@ -207,12 +153,11 @@
                 .substring(0, 2);
         }
         
-        // Load all managers
         async function loadManagers() {
             try {
-                document.getElementById('loadingState').style.display = 'block';
-                document.getElementById('managersGrid').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('managersGrid').classList.add('hidden');
+                document.getElementById('emptyState').classList.add('hidden');
                 
                 allManagers = await apiGet('/managers/');
                 
@@ -220,15 +165,13 @@
                 
             } catch (err) {
                 console.error('Failed to load managers:', err);
-                document.getElementById('loadingState').innerHTML = '<p style="color: #dc3545;">Failed to load managers</p>';
+                document.getElementById('loadingState').innerHTML = '<p class="text-red-600 font-semibold">Failed to load managers</p>';
             }
         }
         
-        // Render managers
         function renderManagers() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
             
-            // Filter managers by search term
             let filteredManagers = allManagers;
             
             if (searchTerm) {
@@ -238,44 +181,41 @@
                 );
             }
             
-            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('loadingState').classList.add('hidden');
             
             if (filteredManagers.length === 0) {
-                document.getElementById('managersGrid').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('managersGrid').classList.add('hidden');
+                document.getElementById('emptyState').classList.remove('hidden');
                 return;
             }
             
             const grid = document.getElementById('managersGrid');
-            grid.style.display = 'grid';
-            document.getElementById('emptyState').style.display = 'none';
+            grid.classList.remove('hidden');
+            document.getElementById('emptyState').classList.add('hidden');
             
             grid.innerHTML = filteredManagers.map(mgr => {
                 const initials = getInitials(mgr.name || mgr.username || 'M');
                 
                 return `
-                    <div class="manager-card" onclick="openManagerDashboard('${escapeHtml(mgr.username)}')">
-                        <div class="manager-header">
-                            <div class="manager-avatar">${initials}</div>
-                            <div class="manager-info">
-                                <h3 class="manager-name">${escapeHtml(mgr.name || 'Manager')}</h3>
-                                <p class="manager-username">@${escapeHtml(mgr.username)}</p>
+                    <div class="bg-white p-6 rounded-xl border border-card-border shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] cursor-pointer" onclick="openManagerDashboard('${escapeHtml(mgr.username)}')">
+                        <div class="flex items-center space-x-4 mb-4">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">${initials}</div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-slate-900">${escapeHtml(mgr.name || 'Manager')}</h3>
+                                <p class="text-sm text-secondary">@${escapeHtml(mgr.username)}</p>
                             </div>
                         </div>
-                    
-                        <div class="manager-details">
-                            <div class="detail-row">
-                                <span class="detail-label">👤 Username:</span>
-                                <span class="detail-value">${escapeHtml(mgr.username)}</span>
+                        <div class="space-y-3 pt-4 border-t border-card-border">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="font-medium text-slate-600 flex items-center gap-2"><i class="fa-solid fa-user text-primary"></i>Username</span>
+                                <span class="text-slate-900">${escapeHtml(mgr.username)}</span>
                             </div>
                         </div>
-                    
-                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e9ecef;" onclick="event.stopPropagation();">
+                        <div class="mt-4 pt-4 border-t border-card-border" onclick="event.stopPropagation();">
                             <button onclick="editManager('${escapeHtml(mgr.username)}', '${escapeHtml(mgr.name || '')}')" 
-                                    style="width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease; margin-bottom: 8px;"
-                                    onmouseover="this.style.background='#0056b3'" 
-                                    onmouseout="this.style.background='#007bff'">
-                                ✏️ Edit Manager
+                                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-primary rounded-md hover:bg-primary-hover transition shadow-sm">
+                                <i class="fa-solid fa-edit"></i>
+                                Edit Manager
                             </button>
                         </div>
                     </div>
@@ -283,34 +223,25 @@
             }).join('');
         }
         
-        // Open manager dashboard (as super-admin view)
         window.openManagerDashboard = function(managerUsername) {
-            // Save the manager username in session temporarily for viewing their dashboard
             const session = loadSession();
             if (session && session.role === 'super-admin') {
-                // Redirect to manager.html with a query parameter
                 window.location = `manager.html?view_as=${encodeURIComponent(managerUsername)}`;
             }
         };
         
-        // Edit manager
         window.editManager = async function(managerUsername, managerName) {
-            // Redirect to edit manager page
             window.location = `add-manager.html?edit=${encodeURIComponent(managerUsername)}`;
         };
         
-        // Search input handler
         document.getElementById('searchInput').addEventListener('input', renderManagers);
         
-        // Check session
         const session = loadSession();
         if (!session || session.role !== 'super-admin') {
             window.location = 'index.html';
         }
         
-        // Load data on page load
         loadManagers();
     </script>
 </body>
 </html>
-
