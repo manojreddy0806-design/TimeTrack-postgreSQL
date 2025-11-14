@@ -1,30 +1,35 @@
 # backend/routes/inventory_history.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 from backend.database import db
 from backend.models import Inventory, InventoryHistory
+from backend.auth import require_auth
 
 bp = Blueprint("inventory_history", __name__)
 
 @bp.get("/")
+@require_auth()
 def list_inventory_history():
     """Get inventory history snapshots for a store"""
+    tenant_id = g.tenant_id
     store_id = request.args.get("store_id")
     
     if not store_id:
         return jsonify({"error": "store_id is required"}), 400
     
-    # Get all snapshots for this store, sorted by date (newest first)
-    snapshots = InventoryHistory.query.filter_by(store_id=store_id).order_by(InventoryHistory.snapshot_date.desc()).all()
+    # Get all snapshots for this tenant/store, sorted by date (newest first)
+    snapshots = InventoryHistory.query.filter_by(tenant_id=tenant_id, store_id=store_id).order_by(InventoryHistory.snapshot_date.desc()).all()
     
     print(f"Loading inventory history for store_id={store_id}, found {len(snapshots)} snapshots")
     
     return jsonify([snapshot.to_dict() for snapshot in snapshots])
 
 @bp.post("/snapshot")
+@require_auth()
 def create_inventory_snapshot():
     """Create a new inventory snapshot for a store"""
     data = request.get_json()
+    tenant_id = g.tenant_id
     
     store_id = data.get("store_id")
     snapshot_date = data.get("snapshot_date")  # Should be YYYY-MM-DD format (device's local date)
@@ -33,8 +38,8 @@ def create_inventory_snapshot():
     if not store_id:
         return jsonify({"error": "store_id is required"}), 400
     
-    # Get current inventory for this store
-    items = Inventory.query.filter_by(store_id=store_id).all()
+    # Get current inventory for this tenant/store
+    items = Inventory.query.filter_by(tenant_id=tenant_id, store_id=store_id).all()
     
     # Parse snapshot date - use the date string directly (no timezone conversion)
     if snapshot_date:
@@ -94,8 +99,8 @@ def create_inventory_snapshot():
     print(f"Creating snapshot: store_id={store_id}, snapshot_date={snapshot_dt.date()}, today_date={today_dt.date()}")
     print(f"Number of items to snapshot: {len(normalized_items)}")
     
-    # Check if snapshot already exists for this date
-    existing = InventoryHistory.query.filter_by(store_id=store_id, snapshot_date=snapshot_dt).first()
+    # Check if snapshot already exists for this tenant/store/date
+    existing = InventoryHistory.query.filter_by(tenant_id=tenant_id, store_id=store_id, snapshot_date=snapshot_dt).first()
     
     if existing:
         # Only allow updating today's snapshot - prevent editing past days
@@ -120,6 +125,7 @@ def create_inventory_snapshot():
         
         # Create new snapshot (only for today or future dates)
         snapshot = InventoryHistory(
+            tenant_id=tenant_id,
             store_id=store_id,
             snapshot_date=snapshot_dt
         )

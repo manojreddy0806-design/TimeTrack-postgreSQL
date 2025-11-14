@@ -1,17 +1,21 @@
 # backend/routes/eod.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 from ..models import get_eods, create_eod
+from ..auth import require_auth
 
 bp = Blueprint("eod", __name__)
 
 @bp.get("/")
+@require_auth()
 def list_eod():
+    tenant_id = g.tenant_id
     store_id = request.args.get("store_id")
-    reports = get_eods(store_id)
+    reports = get_eods(tenant_id=tenant_id, store_id=store_id)
     return jsonify(reports)
 
 @bp.post("/")
+@require_auth()
 def add_eod():
     try:
         data = request.get_json()
@@ -45,7 +49,9 @@ def add_eod():
               f"qpay_amount={qpay_amount}, boxes_count={boxes_count}, total1={total1}, "
               f"notes={data.get('notes', '')[:50]}")
         
+        tenant_id = g.tenant_id
         eod_id = create_eod(
+            tenant_id=tenant_id,
             store_id=store_id,
             report_date=report_date,
             notes=data.get("notes"),

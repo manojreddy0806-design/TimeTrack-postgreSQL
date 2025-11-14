@@ -63,7 +63,7 @@ def get_auth_token():
 
 def require_auth(roles=None):
     """
-    Decorator to require authentication.
+    Decorator to require authentication with tenant isolation.
     
     Args:
         roles: List of allowed roles (e.g., ['manager', 'super-admin', 'store'])
@@ -73,6 +73,7 @@ def require_auth(roles=None):
         @require_auth(roles=['manager'])
         def my_endpoint():
             # user info available in g.current_user
+            # tenant_id available in g.tenant_id
             pass
     """
     def decorator(f):
@@ -91,8 +92,14 @@ def require_auth(roles=None):
             if roles and user_data.get('role') not in roles:
                 return jsonify({"error": "Insufficient permissions"}), 403
             
-            # Store user data in Flask's g object for use in route
+            # Extract tenant_id from token
+            tenant_id = user_data.get('tenant_id')
+            if not tenant_id:
+                return jsonify({"error": "Invalid token: missing tenant_id"}), 401
+            
+            # Store user data and tenant_id in Flask's g object for use in route
             g.current_user = user_data
+            g.tenant_id = tenant_id
             
             return f(*args, **kwargs)
         return decorated_function

@@ -1,8 +1,9 @@
 # backend/routes/timeclock.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime, timedelta
 from backend.database import db
 from backend.models import Employee, TimeClock
+from backend.auth import require_auth
 from backend.services.face_service import (
     find_best_match,
     validate_face_descriptor,
@@ -14,12 +15,20 @@ bp = Blueprint("timeclock", __name__)
 
 
 @bp.post("/clock-in")
+@require_auth()
 def clock_in_route():
     """Legacy clock-in endpoint (kept for compatibility)"""
     data = request.get_json()
     employee_id = data.get("employee_id")
+    tenant_id = g.tenant_id
+    
+    # Verify employee belongs to this tenant
+    employee = Employee.query.filter_by(id=int(employee_id), tenant_id=tenant_id).first()
+    if not employee:
+        return jsonify({"error": "Employee not found"}), 404
     
     entry = TimeClock(
+        tenant_id=tenant_id,
         employee_id=int(employee_id),
         clock_in=datetime.utcnow(),
         clock_out=None
@@ -31,13 +40,15 @@ def clock_in_route():
 
 
 @bp.post("/clock-out")
+@require_auth()
 def clock_out_route():
     """Legacy clock-out endpoint (kept for compatibility)"""
     data = request.get_json()
     entry_id = data.get("entry_id")
+    tenant_id = g.tenant_id
     
     try:
-        entry = TimeClock.query.get(int(entry_id))
+        entry = TimeClock.query.filter_by(id=int(entry_id), tenant_id=tenant_id).first()
         if entry:
             entry.clock_out = datetime.utcnow()
             db.session.commit()
@@ -49,6 +60,7 @@ def clock_out_route():
 
 
 @bp.post("/clock-in-face")
+@require_auth()
 def clock_in_face():
     """
     Clock in using face recognition.
@@ -62,6 +74,7 @@ def clock_in_face():
     """
     try:
         data = request.get_json()
+        tenant_id = g.tenant_id
         
         face_descriptor = data.get("face_descriptor")
         face_image = data.get("face_image")
@@ -74,8 +87,8 @@ def clock_in_face():
         if not validate_face_descriptor(face_descriptor):
             return jsonify({"error": "Invalid face descriptor format"}), 400
         
-        # Get all employees with registered faces
-        registered_employees = Employee.query.filter_by(face_registered=True).all()
+        # Get all employees with registered faces for this tenant
+        registered_employees = Employee.query.filter_by(tenant_id=tenant_id, face_registered=True).all()
         
         if not registered_employees:
             return jsonify({
@@ -105,8 +118,11 @@ def clock_in_face():
         # Convert numpy types to Python float for database compatibility
         confidence = float(confidence) if confidence is not None else None
         
-        # Get employee object
-        employee = Employee.query.get(employee_id)
+        # Get employee object (verify tenant_id)
+        employee = Employee.query.filter_by(id=employee_id, tenant_id=tenant_id).first()
+        
+        if not employee:
+            return jsonify({"error": "Employee not found or does not belong to this tenant"}), 404
         
         if employee:
             # Get existing descriptors
@@ -135,6 +151,7 @@ def clock_in_face():
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         
         existing_entry = TimeClock.query.filter(
+            TimeClock.tenant_id == tenant_id,
             TimeClock.employee_id == employee_id,
             TimeClock.clock_in >= today_start,
             TimeClock.clock_out == None
@@ -155,8 +172,23 @@ def clock_in_face():
         # Compress face image
         compressed_image = compress_image(face_image, max_size=400) if face_image else None
         
+        # Track storage usage for face image
+        if compressed_image:
+            from backend.utils.storage import calculate_base64_size, check_storage_limit, update_storage_usage
+            
+            image_size = calculate_base64_size(compressed_image)
+            
+            # Check storage limit
+            has_space, error_msg = check_storage_limit(tenant_id, image_size)
+            if not has_space:
+                return jsonify({"error": error_msg}), 400
+            
+            # Update storage usage
+            update_storage_usage(tenant_id, image_size)
+        
         # Create clock-in entry
         entry = TimeClock(
+            tenant_id=tenant_id,
             employee_id=employee_id,
             employee_name=employee_name,
             store_id=store_id,
@@ -187,6 +219,7 @@ def clock_in_face():
 
 
 @bp.post("/clock-out-face")
+@require_auth()
 def clock_out_face():
     """
     Clock out using face recognition.
@@ -200,6 +233,7 @@ def clock_out_face():
     """
     try:
         data = request.get_json()
+        tenant_id = g.tenant_id
         
         face_descriptor = data.get("face_descriptor")
         face_image = data.get("face_image")
@@ -212,8 +246,8 @@ def clock_out_face():
         if not validate_face_descriptor(face_descriptor):
             return jsonify({"error": "Invalid face descriptor format"}), 400
         
-        # Get all employees with registered faces
-        registered_employees = Employee.query.filter_by(face_registered=True).all()
+        # Get all employees with registered faces for this tenant
+        registered_employees = Employee.query.filter_by(tenant_id=tenant_id, face_registered=True).all()
         
         if not registered_employees:
             return jsonify({
@@ -243,8 +277,11 @@ def clock_out_face():
         # Convert numpy types to Python float for database compatibility
         confidence = float(confidence) if confidence is not None else None
         
-        # Get employee object
-        employee = Employee.query.get(employee_id)
+        # Get employee object (verify tenant_id)
+        employee = Employee.query.filter_by(id=employee_id, tenant_id=tenant_id).first()
+        
+        if not employee:
+            return jsonify({"error": "Employee not found or does not belong to this tenant"}), 404
         
         if employee:
             # Get existing descriptors
@@ -273,6 +310,7 @@ def clock_out_face():
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         
         active_entry = TimeClock.query.filter(
+            TimeClock.tenant_id == tenant_id,
             TimeClock.employee_id == employee_id,
             TimeClock.clock_in >= today_start,
             TimeClock.clock_out == None
@@ -287,6 +325,24 @@ def clock_out_face():
         
         # Compress face image
         compressed_image = compress_image(face_image, max_size=400) if face_image else None
+        
+        # Track storage usage for face image
+        if compressed_image:
+            from backend.utils.storage import calculate_base64_size, check_storage_limit, update_storage_usage
+            
+            old_image_size = calculate_base64_size(active_entry.clock_out_face_image) if active_entry.clock_out_face_image else 0
+            new_image_size = calculate_base64_size(compressed_image)
+            size_change = new_image_size - old_image_size
+            
+            # Check storage limit
+            if size_change > 0:
+                has_space, error_msg = check_storage_limit(tenant_id, size_change)
+                if not has_space:
+                    return jsonify({"error": error_msg}), 400
+            
+            # Update storage usage
+            if size_change != 0:
+                update_storage_usage(tenant_id, size_change)
         
         # Update entry with clock-out time
         clock_out_time = datetime.utcnow()
@@ -324,6 +380,7 @@ def clock_out_face():
 
 
 @bp.get("/today")
+@require_auth()
 def get_today_entries():
     """
     Get all timeclock entries for today for a specific store.
@@ -332,6 +389,7 @@ def get_today_entries():
     - store_id: Store identifier
     """
     try:
+        tenant_id = g.tenant_id
         store_id = request.args.get("store_id")
         
         if not store_id:
@@ -341,6 +399,7 @@ def get_today_entries():
         tomorrow_start = today_start + timedelta(days=1)
         
         entries = TimeClock.query.filter(
+            TimeClock.tenant_id == tenant_id,
             TimeClock.store_id == store_id,
             TimeClock.clock_in >= today_start,
             TimeClock.clock_in < tomorrow_start
@@ -361,6 +420,7 @@ def get_today_entries():
 
 
 @bp.get("/history")
+@require_auth()
 def get_history():
     """
     Get timeclock history for a store.
@@ -370,6 +430,7 @@ def get_history():
     - days: Number of days to look back (default 30)
     """
     try:
+        tenant_id = g.tenant_id
         store_id = request.args.get("store_id")
         days = int(request.args.get("days", 30))
         
@@ -379,6 +440,7 @@ def get_history():
         start_date = datetime.utcnow() - timedelta(days=days)
         
         entries = TimeClock.query.filter(
+            TimeClock.tenant_id == tenant_id,
             TimeClock.store_id == store_id,
             TimeClock.clock_in >= start_date
         ).order_by(TimeClock.clock_in.desc()).all()
@@ -398,6 +460,7 @@ def get_history():
 
 
 @bp.get("/employee/<employee_id>/history")
+@require_auth()
 def get_employee_history(employee_id):
     """
     Get timeclock history for a specific employee.
@@ -409,11 +472,18 @@ def get_employee_history(employee_id):
     - days: Number of days to look back (default 90)
     """
     try:
+        tenant_id = g.tenant_id
         days = int(request.args.get("days", 90))
         start_date = datetime.utcnow() - timedelta(days=days)
         
+        # Verify employee belongs to this tenant
+        employee = Employee.query.filter_by(id=int(employee_id), tenant_id=tenant_id).first()
+        if not employee:
+            return jsonify({"error": "Employee not found"}), 404
+        
         # Find all entries for this employee
         entries = TimeClock.query.filter(
+            TimeClock.tenant_id == tenant_id,
             TimeClock.employee_id == int(employee_id),
             TimeClock.clock_in >= start_date
         ).order_by(TimeClock.clock_in.desc()).all()

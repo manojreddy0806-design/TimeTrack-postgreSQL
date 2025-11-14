@@ -1,8 +1,9 @@
 # backend/routes/face.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from datetime import datetime
 from backend.database import db
 from backend.models import Employee
+from backend.auth import require_auth
 from backend.services.face_service import (
     find_best_match, 
     validate_face_descriptor,
@@ -14,6 +15,7 @@ bp = Blueprint("face", __name__)
 
 
 @bp.post("/add-appearance")
+@require_auth()
 def add_face_appearance():
     """
     Add a new face appearance to an existing employee (used when recognition fails).
@@ -28,22 +30,26 @@ def add_face_appearance():
     """
     try:
         data = request.get_json()
+        tenant_id = g.tenant_id
         
         employee_name = data.get("employee_name")
         employee_id = data.get("employee_id")
         face_descriptor = data.get("face_descriptor")
         face_image = data.get("face_image")
         
-        # Get employee by name or ID
+        # Get employee by name or ID (filter by tenant_id)
         if employee_name:
-            # Search by name (case-insensitive)
-            employee = Employee.query.filter(Employee.name.ilike(employee_name.strip())).first()
+            # Search by name (case-insensitive) for this tenant
+            employee = Employee.query.filter(
+                Employee.tenant_id == tenant_id,
+                Employee.name.ilike(employee_name.strip())
+            ).first()
             if not employee:
                 return jsonify({"error": f"Employee '{employee_name}' not found. Please check the spelling."}), 404
         elif employee_id:
-            # Search by ID
+            # Search by ID (filter by tenant_id)
             try:
-                employee = Employee.query.get(int(employee_id))
+                employee = Employee.query.filter_by(id=int(employee_id), tenant_id=tenant_id).first()
             except:
                 return jsonify({"error": "Invalid employee_id format"}), 400
         else:
@@ -102,8 +108,25 @@ def add_face_appearance():
         
         # Update face_image if provided
         if compressed_image:
+            # Track storage usage
+            from backend.utils.storage import calculate_base64_size, check_storage_limit, update_storage_usage
+            
+            old_image_size = calculate_base64_size(employee.face_image) if employee.face_image else 0
+            new_image_size = calculate_base64_size(compressed_image)
+            size_change = new_image_size - old_image_size
+            
+            # Check storage limit
+            if size_change > 0:
+                has_space, error_msg = check_storage_limit(tenant_id, size_change)
+                if not has_space:
+                    return jsonify({"error": error_msg}), 400
+            
             # Store as text field
             employee.face_image = compressed_image
+            
+            # Update storage usage
+            if size_change != 0:
+                update_storage_usage(tenant_id, size_change)
         
         db.session.commit()
         
@@ -122,6 +145,7 @@ def add_face_appearance():
 
 
 @bp.post("/register")
+@require_auth()
 def register_face():
     """
     Register a face descriptor for an employee.
@@ -135,6 +159,7 @@ def register_face():
     """
     try:
         data = request.get_json()
+        tenant_id = g.tenant_id
         
         employee_id = data.get("employee_id")
         face_descriptor = data.get("face_descriptor")
@@ -150,17 +175,18 @@ def register_face():
         if not validate_face_descriptor(face_descriptor):
             return jsonify({"error": "Invalid face descriptor format. Must be 128-dimensional array"}), 400
         
-        # Get employee
+        # Get employee (filter by tenant_id)
         try:
-            employee = Employee.query.get(int(employee_id))
+            employee = Employee.query.filter_by(id=int(employee_id), tenant_id=tenant_id).first()
         except:
             return jsonify({"error": "Invalid employee_id format"}), 400
         
         if not employee:
             return jsonify({"error": "Employee not found"}), 404
         
-        # Check for duplicate face - search all registered employees (only check against other employees)
+        # Check for duplicate face - search all registered employees for this tenant (only check against other employees)
         all_registered = Employee.query.filter(
+            Employee.tenant_id == tenant_id,
             Employee.face_registered == True,
             Employee.id != int(employee_id)
         ).all()
@@ -220,8 +246,25 @@ def register_face():
         
         # Update face_image (use latest image, or keep existing if not provided)
         if compressed_image:
+            # Track storage usage
+            from backend.utils.storage import calculate_base64_size, check_storage_limit, update_storage_usage
+            
+            old_image_size = calculate_base64_size(employee.face_image) if employee.face_image else 0
+            new_image_size = calculate_base64_size(compressed_image)
+            size_change = new_image_size - old_image_size
+            
+            # Check storage limit
+            if size_change > 0:
+                has_space, error_msg = check_storage_limit(tenant_id, size_change)
+                if not has_space:
+                    return jsonify({"error": error_msg}), 400
+            
             # Store as text field
             employee.face_image = compressed_image
+            
+            # Update storage usage
+            if size_change != 0:
+                update_storage_usage(tenant_id, size_change)
         
         # Clear old single descriptor format
         employee.face_descriptor = None
@@ -242,6 +285,7 @@ def register_face():
 
 
 @bp.post("/recognize")
+@require_auth()
 def recognize_face():
     """
     Recognize a face and return matching employee.
@@ -254,6 +298,7 @@ def recognize_face():
     """
     try:
         data = request.get_json()
+        tenant_id = g.tenant_id
         
         face_descriptor = data.get("face_descriptor")
         store_id = data.get("store_id")
@@ -267,8 +312,8 @@ def recognize_face():
         if not validate_face_descriptor(face_descriptor):
             return jsonify({"error": "Invalid face descriptor format. Must be 128-dimensional array"}), 400
         
-        # Get all employees with registered faces
-        registered_employees = Employee.query.filter_by(face_registered=True).all()
+        # Get all employees with registered faces for this tenant
+        registered_employees = Employee.query.filter_by(tenant_id=tenant_id, face_registered=True).all()
         
         if not registered_employees:
             return jsonify({
@@ -307,13 +352,15 @@ def recognize_face():
 
 
 @bp.get("/employees/<employee_id>")
+@require_auth()
 def get_employee_face(employee_id):
     """
     Get employee face registration status.
     """
     try:
+        tenant_id = g.tenant_id
         try:
-            employee = Employee.query.get(int(employee_id))
+            employee = Employee.query.filter_by(id=int(employee_id), tenant_id=tenant_id).first()
         except:
             return jsonify({"error": "Invalid employee_id format"}), 400
         

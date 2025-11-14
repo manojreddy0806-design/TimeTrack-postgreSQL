@@ -1,16 +1,20 @@
 # backend/routes/inventory.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from ..models import get_inventory, add_inventory_item, update_inventory_item, delete_inventory_item
+from ..auth import require_auth
 
 bp = Blueprint("inventory", __name__)
 
 @bp.route("/", methods=["GET"])
+@require_auth()
 def list_inventory():
+    tenant_id = g.tenant_id
     store_id = request.args.get("store_id")
-    items = get_inventory(store_id)
+    items = get_inventory(tenant_id=tenant_id, store_id=store_id)
     return jsonify(items)
 
 @bp.route("/", methods=["POST"])
+@require_auth()
 def add_item():
     try:
         data = request.get_json()
@@ -36,7 +40,9 @@ def add_item():
         except (ValueError, TypeError):
             return jsonify({"error": "Quantity must be a valid integer"}), 400
         
+        tenant_id = g.tenant_id
         item_id = add_inventory_item(
+            tenant_id=tenant_id,
             store_id=store_id,
             sku=sku.strip(),
             name=name.strip(),
@@ -49,11 +55,13 @@ def add_item():
         return jsonify({"error": f"Failed to add inventory item: {str(e)}"}), 500
 
 @bp.route("/", methods=["PUT"], strict_slashes=False)
+@require_auth()
 def update_item():
     try:
         data = request.get_json()
         if not data:
             return jsonify({"error": "Request body is required"}), 400
+        tenant_id = g.tenant_id
         store_id = data.get("store_id")
         item_id = data.get("_id") or data.get("id")  # Support both _id and id
         sku = data.get("sku")  # Old SKU for finding the item (used if item_id not provided)
@@ -65,14 +73,14 @@ def update_item():
         if not item_id and (not store_id or not sku):
             return jsonify({"error": "Either _id or both store_id and sku are required"}), 400
         
-        success = update_inventory_item(store_id=store_id, sku=sku, item_id=item_id, quantity=quantity, name=name, new_sku=new_sku)
+        success = update_inventory_item(tenant_id=tenant_id, store_id=store_id, sku=sku, item_id=item_id, quantity=quantity, name=name, new_sku=new_sku)
         if success:
             return jsonify({"message": "Inventory item updated successfully"}), 200
         else:
             # Check if it's because new SKU already exists
             if new_sku:
                 from ..models import Inventory
-                query = Inventory.query.filter_by(store_id=store_id, sku=new_sku)
+                query = Inventory.query.filter_by(tenant_id=tenant_id, store_id=store_id, sku=new_sku)
                 if item_id:
                     try:
                         query = query.filter(Inventory.id != int(item_id))
@@ -88,19 +96,21 @@ def update_item():
         return jsonify({"error": f"Failed to update inventory item: {str(e)}"}), 500
 
 @bp.route("/", methods=["DELETE"])
+@require_auth()
 def remove_item():
     try:
         data = request.get_json()
         if not data:
             return jsonify({"error": "Request body is required"}), 400
         
+        tenant_id = g.tenant_id
         store_id = data.get("store_id")
         sku = data.get("sku")
         
         if not store_id or not sku:
             return jsonify({"error": "store_id and sku are required"}), 400
         
-        success = delete_inventory_item(store_id, sku)
+        success = delete_inventory_item(tenant_id=tenant_id, store_id=store_id, sku=sku)
         if success:
             return jsonify({"message": "Inventory item deleted successfully"}), 200
         else:

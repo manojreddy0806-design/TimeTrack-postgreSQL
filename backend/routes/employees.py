@@ -1,16 +1,20 @@
 # backend/routes/employees.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from ..models import get_employees, create_employee, delete_employee
+from ..auth import require_auth
 
 bp = Blueprint("employees", __name__)
 
 @bp.get("/")
+@require_auth()
 def list_employees():
+    tenant_id = g.tenant_id
     store_id = request.args.get("store_id")
-    employees = get_employees(store_id)
+    employees = get_employees(tenant_id=tenant_id, store_id=store_id)
     return jsonify(employees)
 
 @bp.post("/")
+@require_auth()
 def add_employee():
     try:
         data = request.get_json()
@@ -21,7 +25,9 @@ def add_employee():
         if not name or not name.strip():
             return jsonify({"error": "Employee name is required"}), 400
         
+        tenant_id = g.tenant_id
         emp_id = create_employee(
+            tenant_id=tenant_id,
             store_id=data.get("store_id"),
             name=name.strip(),
             role=data.get("role"),

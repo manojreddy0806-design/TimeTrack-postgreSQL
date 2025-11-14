@@ -55,8 +55,10 @@ def create_app():
     from backend.routes.face import bp as face_bp
     from backend.routes.inventory_history import bp as inventory_history_bp
     from backend.routes.managers import bp as managers_bp
+    from backend.routes.tenants import bp as tenants_bp
 
     # Register blueprints - order matters! More specific routes first
+    app.register_blueprint(tenants_bp, url_prefix="/api/tenants")
     app.register_blueprint(inventory_history_bp, url_prefix="/api/inventory/history")
     app.register_blueprint(employees_bp, url_prefix="/api/employees")
     app.register_blueprint(timeclock_bp, url_prefix="/api/timeclock")
@@ -114,6 +116,15 @@ def create_app():
     @app.get("/<path:page>.html")
     def serve_page(page):
         return send_from_directory(frontend_pages, f"{page}.html")
+    
+    # Serve signup page as root signup route
+    @app.get("/signup")
+    def serve_signup():
+        return send_from_directory(frontend_pages, "signup.html")
+    
+    @app.get("/signup-success")
+    def serve_signup_success():
+        return send_from_directory(frontend_pages, "signup-success.html")
 
     # Serve static CSS files
     @app.get("/static/css/<path:filename>")

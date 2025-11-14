@@ -19,11 +19,13 @@ def _get_client_ip():
     return request.remote_addr or "unknown"
 
 @bp.get("/")
+@require_auth()
 def list_stores():
-    """List stores, optionally filtered by manager_username"""
+    """List stores for the current tenant, optionally filtered by manager_username"""
+    tenant_id = g.tenant_id
     # Get manager_username from query parameter if provided
     manager_username = request.args.get("manager_username")
-    stores = get_stores(manager_username=manager_username)
+    stores = get_stores(tenant_id=tenant_id, manager_username=manager_username)
     # Don't return passwords in the list
     for store in stores:
         store.pop("password", None)
@@ -72,7 +74,8 @@ def add_store():
         except (ValueError, TypeError):
             return jsonify({"error": "Total boxes must be a positive integer"}), 400
         
-        # Get manager_username from authenticated user (not from request for security)
+        # Get tenant_id and manager_username from authenticated user
+        tenant_id = g.tenant_id
         user = g.current_user
         manager_username = user.get('username')
         if not manager_username:
@@ -80,10 +83,11 @@ def add_store():
         
         client_ip = _get_client_ip()
         store_id = create_store(
-            name,
-            username,
-            password,
-            total_boxes,
+            tenant_id=tenant_id,
+            name=name,
+            username=username,
+            password=password,
+            total_boxes=total_boxes,
             manager_username=manager_username,
             allowed_ip=client_ip
         )
@@ -123,6 +127,7 @@ def store_login():
     if not username or not password:
         return jsonify({"error": "Username and password required"}), 400
 
+    # Try to find store (tenant_id will be extracted from store record)
     store = get_store_by_username(username)
     if not store:
         return jsonify({"error": "Invalid credentials"}), 401
@@ -139,8 +144,13 @@ def store_login():
             "details": f"This store can only be accessed from IP {allowed_ip}. You are coming from {client_ip}."
         }), 403
 
+    tenant_id = store.get("tenant_id")
+    if not tenant_id:
+        return jsonify({"error": "Store configuration error"}), 500
+
     token = generate_token({
         "role": "store",
+        "tenant_id": tenant_id,
         "storeId": store.get("name"),
         "storeName": store.get("name"),
         "username": username
@@ -191,8 +201,10 @@ def edit_store():
         elif allowed_ip is not None:
             ip_to_set = allowed_ip or None
 
+        tenant_id = g.tenant_id
         success = update_store(
-            name,
+            tenant_id=tenant_id,
+            name=name,
             new_name=new_name,
             username=username,
             password=password,
@@ -201,7 +213,7 @@ def edit_store():
         )
         if success:
             # Return updated store info
-            stores = get_stores()
+            stores = get_stores(tenant_id=tenant_id)
             updated_store = next((s for s in stores if s.get("name") == (new_name or name)), None)
             if updated_store:
                 updated_store.pop("password", None)
@@ -221,13 +233,15 @@ def edit_store():
             return jsonify({"error": "Failed to update store. Please try again."}), 500
 
 @bp.delete("/")
+@require_auth(roles=['manager'])
 def remove_store():
     data = request.get_json()
     name = data.get("name")
     if not name:
         return jsonify({"error": "Store name is required"}), 400
     
-    success = delete_store(name)
+    tenant_id = g.tenant_id
+    success = delete_store(tenant_id=tenant_id, name=name)
     if success:
         return jsonify({"message": f"Store '{name}' deleted successfully"}), 200
     else:
@@ -243,6 +257,7 @@ def manager_login():
     if not username or not password:
         return jsonify({"error": "Username and password required"}), 400
     
+    # Try to find manager (we'll need tenant_id from the manager record)
     manager = get_manager_by_username(username)
     if not manager:
         return jsonify({"error": "Invalid credentials"}), 401
@@ -255,17 +270,30 @@ def manager_login():
     if not verify_password(password, stored_password):
         return jsonify({"error": "Invalid credentials"}), 401
     
+    tenant_id = manager.get("tenant_id")
+    if not tenant_id:
+        return jsonify({"error": "Manager configuration error"}), 500
+    
+    # Check tenant status
+    from ..models import Tenant
+    tenant = Tenant.query.get(tenant_id)
+    if tenant and tenant.status != 'active':
+        return jsonify({"error": f"Account is {tenant.status}. Please contact support."}), 403
+    
     # Generate JWT token
     token = generate_token({
-        "role": "manager",
+        "role": "manager" if not manager.get("is_super_admin") else "super-admin",
+        "tenant_id": tenant_id,
         "name": manager.get("name", "Manager"),
-        "username": username
+        "username": username,
+        "is_super_admin": manager.get("is_super_admin", False)
     })
     
     # Don't return password
     manager.pop("password", None)
     return jsonify({
-        "role": "manager",
+        "role": "manager" if not manager.get("is_super_admin") else "super-admin",
+        "tenant_id": tenant_id,
         "name": manager.get("name", "Manager"),
         "username": username,
         "token": token

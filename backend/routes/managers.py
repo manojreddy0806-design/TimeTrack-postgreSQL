@@ -1,6 +1,6 @@
 # backend/routes/managers.py
-from flask import Blueprint, request, jsonify
-from ..models import get_all_managers, create_manager, update_manager, get_manager_by_username
+from flask import Blueprint, request, jsonify, g
+from ..models import get_all_managers, create_manager, update_manager, get_manager_by_username, verify_password
 from ..config import Config
 from ..auth import generate_token, validate_password_strength, require_auth
 
@@ -9,8 +9,9 @@ bp = Blueprint("managers", __name__)
 @bp.get("/")
 @require_auth(roles=['super-admin'])
 def list_managers():
-    """List all managers (super-admin only)"""
-    managers = get_all_managers()
+    """List all managers for the current tenant (super-admin only)"""
+    tenant_id = g.tenant_id
+    managers = get_all_managers(tenant_id=tenant_id)
     return jsonify(managers)
 
 @bp.post("/")
@@ -45,7 +46,8 @@ def add_manager():
         if not is_valid:
             return jsonify({"error": error_msg}), 400
         
-        manager_info = create_manager(name, username, password)
+        tenant_id = g.tenant_id
+        manager_info = create_manager(tenant_id=tenant_id, name=name, username=username, password=password)
         return jsonify(manager_info), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -80,7 +82,8 @@ def edit_manager(username):
             if not is_valid:
                 return jsonify({"error": error_msg}), 400
         
-        updated_manager = update_manager(username, name=name, new_username=new_username, password=password)
+        tenant_id = g.tenant_id
+        updated_manager = update_manager(tenant_id=tenant_id, username=username, name=name, new_username=new_username, password=password)
         return jsonify(updated_manager), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -93,7 +96,8 @@ def edit_manager(username):
 @require_auth(roles=['super-admin'])
 def get_manager(username):
     """Get a specific manager by username (super-admin only)"""
-    manager = get_manager_by_username(username)
+    tenant_id = g.tenant_id
+    manager = get_manager_by_username(username, tenant_id=tenant_id)
     if not manager:
         return jsonify({"error": "Manager not found"}), 404
     # Don't return password
@@ -102,7 +106,10 @@ def get_manager(username):
 
 @bp.post("/super-admin/login")
 def super_admin_login():
-    """Super-admin login endpoint"""
+    """
+    Super-admin login endpoint.
+    Note: This is for tenant super-admins. Use /api/tenants/login for tenant-level login.
+    """
     data = request.get_json()
     username = data.get("username", "").strip()
     password = data.get("password", "")
@@ -110,20 +117,43 @@ def super_admin_login():
     if not username or not password:
         return jsonify({"error": "Username and password required"}), 400
     
-    # Check super-admin credentials from config
-    if username == Config.SUPER_ADMIN_USERNAME and password == Config.SUPER_ADMIN_PASSWORD:
-        # Generate JWT token
-        token = generate_token({
-            "role": "super-admin",
-            "name": "Super Admin",
-            "username": username
-        })
-        return jsonify({
-            "role": "super-admin",
-            "name": "Super Admin",
-            "username": username,
-            "token": token
-        }), 200
-    else:
+    # Find manager by username (will need tenant_id from manager record)
+    manager = get_manager_by_username(username)
+    if not manager:
         return jsonify({"error": "Invalid credentials"}), 401
+    
+    stored_password = manager.get("password")
+    if not stored_password or not verify_password(password, stored_password):
+        return jsonify({"error": "Invalid credentials"}), 401
+    
+    # Check if this is a super admin
+    if not manager.get("is_super_admin"):
+        return jsonify({"error": "Access denied. Super admin privileges required."}), 403
+    
+    tenant_id = manager.get("tenant_id")
+    if not tenant_id:
+        return jsonify({"error": "Manager configuration error"}), 500
+    
+    # Check tenant status
+    from ..models import Tenant
+    tenant = Tenant.query.get(tenant_id)
+    if tenant and tenant.status != 'active':
+        return jsonify({"error": f"Account is {tenant.status}. Please contact support."}), 403
+    
+    # Generate JWT token
+    token = generate_token({
+        "role": "super-admin",
+        "tenant_id": tenant_id,
+        "name": manager.get("name", "Super Admin"),
+        "username": username,
+        "is_super_admin": True
+    })
+    
+    return jsonify({
+        "role": "super-admin",
+        "tenant_id": tenant_id,
+        "name": manager.get("name", "Super Admin"),
+        "username": username,
+        "token": token
+    }), 200
 

@@ -8,23 +8,81 @@ from backend.database import db
 
 # ================== SQLAlchemy Models ==================
 
-class Manager(db.Model):
-    __tablename__ = 'managers'
+class Tenant(db.Model):
+    __tablename__ = 'tenants'
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    username = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    password = db.Column(db.String(200), nullable=False)
+    company_name = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(200), nullable=False)
+    plan = db.Column(db.String(50), nullable=False, default='basic')  # basic, standard, premium
+    max_storage_bytes = db.Column(db.BigInteger, default=1073741824)  # 1GB default
+    used_storage_bytes = db.Column(db.BigInteger, default=0)
+    status = db.Column(db.String(50), default='active')  # active, suspended, cancelled
+    stripe_customer_id = db.Column(db.String(255), nullable=True, index=True)
+    stripe_subscription_id = db.Column(db.String(255), nullable=True, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    stores = db.relationship('Store', back_populates='manager', lazy='dynamic')
+    managers = db.relationship('Manager', back_populates='tenant', cascade='all, delete-orphan')
     
     def to_dict(self, include_password=False):
         data = {
             'id': self.id,
+            'company_name': self.company_name,
+            'email': self.email,
+            'plan': self.plan,
+            'max_storage_bytes': self.max_storage_bytes,
+            'used_storage_bytes': self.used_storage_bytes,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+        if include_password:
+            data['password_hash'] = self.password_hash
+        return data
+    
+    def check_storage_limit(self, additional_bytes=0):
+        """Check if tenant can use additional storage"""
+        return (self.used_storage_bytes + additional_bytes) <= self.max_storage_bytes
+    
+    def get_storage_usage_percent(self):
+        """Get storage usage as percentage"""
+        if self.max_storage_bytes == 0:
+            return 0
+        return (self.used_storage_bytes / self.max_storage_bytes) * 100
+
+
+class Manager(db.Model):
+    __tablename__ = 'managers'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(50), nullable=False, index=True)
+    password = db.Column(db.String(200), nullable=False)
+    is_super_admin = db.Column(db.Boolean, default=False)  # True for tenant's super admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    tenant = db.relationship('Tenant', back_populates='managers')
+    # Stores relationship - composite join on tenant_id + username
+    # Note: No back_populates to avoid SQLAlchemy issues with composite keys
+    # Use get_stores(manager_username=..., tenant_id=...) function instead
+    
+    # Composite unique constraint on tenant_id + username
+    __table_args__ = (
+        db.UniqueConstraint('tenant_id', 'username', name='uq_tenant_manager_username'),
+    )
+    
+    def to_dict(self, include_password=False):
+        data = {
+            'id': self.id,
+            'tenant_id': self.tenant_id,
             'name': self.name,
             'username': self.username,
+            'is_super_admin': self.is_super_admin,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
         if include_password:
@@ -36,23 +94,38 @@ class Store(db.Model):
     __tablename__ = 'stores'
     
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    username = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False, index=True)
+    username = db.Column(db.String(50), nullable=False, index=True)
     password = db.Column(db.String(200), nullable=False)
     total_boxes = db.Column(db.Integer, default=0)
-    manager_username = db.Column(db.String(50), db.ForeignKey('managers.username'), nullable=True)
+    manager_username = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     allowed_ip = db.Column(db.String(45), nullable=True)
     
+    # Foreign key relationship to Manager (composite: tenant_id + username)
+    # Note: We'll handle this in application logic since SQLAlchemy doesn't support composite FKs directly
+    
     # Relationships
-    manager = db.relationship('Manager', back_populates='stores')
-    inventory_items = db.relationship('Inventory', back_populates='store', cascade='all, delete-orphan')
-    inventory_history = db.relationship('InventoryHistory', back_populates='store', cascade='all, delete-orphan')
-    eod_reports = db.relationship('EOD', back_populates='store', cascade='all, delete-orphan')
+    tenant = db.relationship('Tenant')
+    # Manager relationship - composite join handled in application code
+    # Use get_manager_by_username(username, tenant_id=...) function instead
+    # Inventory, InventoryHistory, and EOD relationships - composite join on tenant_id + store_id (name)
+    # Note: Using string-based primaryjoin since store_id references Store.name, not Store.id
+    # Note: Relationships to Inventory, InventoryHistory, and EOD are handled via queries
+    # Using get_inventory(tenant_id=..., store_id=...) etc. functions
+    # No SQLAlchemy relationships defined to avoid composite key issues
+    
+    # Composite unique constraint on tenant_id + name and tenant_id + username
+    __table_args__ = (
+        db.UniqueConstraint('tenant_id', 'name', name='uq_tenant_store_name'),
+        db.UniqueConstraint('tenant_id', 'username', name='uq_tenant_store_username'),
+    )
     
     def to_dict(self, include_password=False):
         data = {
             'id': self.id,
+            'tenant_id': self.tenant_id,
             'name': self.name,
             'username': self.username,
             'total_boxes': self.total_boxes,
@@ -69,6 +142,7 @@ class Employee(db.Model):
     __tablename__ = 'employees'
     
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     store_id = db.Column(db.String(100), nullable=True, index=True)
     name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(50), nullable=True)
@@ -81,6 +155,9 @@ class Employee(db.Model):
     face_image = db.Column(db.Text, nullable=True)  # Base64 encoded image
     face_registered_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    tenant = db.relationship('Tenant')
     
     # Relationships
     timeclock_entries = db.relationship('TimeClock', back_populates='employee', cascade='all, delete-orphan')
@@ -110,6 +187,7 @@ class Employee(db.Model):
     def to_dict(self):
         return {
             'employee_id': str(self.id),
+            'tenant_id': self.tenant_id,
             'store_id': self.store_id,
             'name': self.name,
             'role': self.role,
@@ -127,23 +205,27 @@ class Inventory(db.Model):
     __tablename__ = 'inventory'
     
     id = db.Column(db.Integer, primary_key=True)
-    store_id = db.Column(db.String(100), db.ForeignKey('stores.name'), nullable=False, index=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    store_id = db.Column(db.String(100), nullable=False, index=True)
     sku = db.Column(db.String(100), nullable=False)
     name = db.Column(db.String(200), nullable=False)
     quantity = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    store = db.relationship('Store', back_populates='inventory_items')
+    tenant = db.relationship('Tenant')
+    # Store relationship - handled via queries (no SQLAlchemy relationship)
+    # Use get_store_by_name(name, tenant_id=...) function instead
     
-    # Composite unique constraint on store_id + sku
+    # Composite unique constraint on tenant_id + store_id + sku
     __table_args__ = (
-        db.UniqueConstraint('store_id', 'sku', name='uq_store_sku'),
+        db.UniqueConstraint('tenant_id', 'store_id', 'sku', name='uq_tenant_store_sku'),
     )
     
     def to_dict(self):
         return {
             '_id': str(self.id),
+            'tenant_id': self.tenant_id,
             'store_id': self.store_id,
             'sku': self.sku,
             'name': self.name,
@@ -156,18 +238,21 @@ class InventoryHistory(db.Model):
     __tablename__ = 'inventory_history'
     
     id = db.Column(db.Integer, primary_key=True)
-    store_id = db.Column(db.String(100), db.ForeignKey('stores.name'), nullable=False, index=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    store_id = db.Column(db.String(100), nullable=False, index=True)
     snapshot_date = db.Column(db.DateTime, nullable=False, index=True)
     items = db.Column(db.Text, nullable=False)  # JSON array of inventory items
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    store = db.relationship('Store', back_populates='inventory_history')
+    tenant = db.relationship('Tenant')
+    # Store relationship - handled via queries (no SQLAlchemy relationship)
+    # Use get_store_by_name(name, tenant_id=...) function instead
     
-    # Composite unique constraint on store_id + snapshot_date
+    # Composite unique constraint on tenant_id + store_id + snapshot_date
     __table_args__ = (
-        db.UniqueConstraint('store_id', 'snapshot_date', name='uq_store_snapshot_date'),
+        db.UniqueConstraint('tenant_id', 'store_id', 'snapshot_date', name='uq_tenant_store_snapshot_date'),
     )
     
     def get_items(self):
@@ -184,6 +269,7 @@ class InventoryHistory(db.Model):
     def to_dict(self):
         return {
             'id': str(self.id),
+            'tenant_id': self.tenant_id,
             'store_id': self.store_id,
             'snapshot_date': self.snapshot_date.isoformat() if self.snapshot_date else None,
             'items': self.get_items(),
@@ -196,6 +282,7 @@ class TimeClock(db.Model):
     __tablename__ = 'timeclock'
     
     id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False, index=True)
     employee_name = db.Column(db.String(100), nullable=True)
     store_id = db.Column(db.String(100), nullable=True, index=True)
@@ -208,6 +295,7 @@ class TimeClock(db.Model):
     clock_out_confidence = db.Column(db.Float, nullable=True)
     
     # Relationships
+    tenant = db.relationship('Tenant')
     employee = db.relationship('Employee', back_populates='timeclock_entries')
     
     def to_dict(self):
@@ -221,6 +309,7 @@ class TimeClock(db.Model):
         
         return {
             'entry_id': str(self.id),
+            'tenant_id': self.tenant_id,
             'employee_id': str(self.employee_id),
             'employee_name': self.employee_name,
             'store_id': self.store_id,
@@ -237,7 +326,8 @@ class EOD(db.Model):
     __tablename__ = 'eod'
     
     id = db.Column(db.Integer, primary_key=True)
-    store_id = db.Column(db.String(100), db.ForeignKey('stores.name'), nullable=False, index=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False, index=True)
+    store_id = db.Column(db.String(100), nullable=False, index=True)
     report_date = db.Column(db.String(50), nullable=False, index=True)
     notes = db.Column(db.Text, nullable=True)
     cash_amount = db.Column(db.Float, default=0)
@@ -249,7 +339,9 @@ class EOD(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    store = db.relationship('Store', back_populates='eod_reports')
+    tenant = db.relationship('Tenant')
+    # Store relationship - handled via queries (no SQLAlchemy relationship)
+    # Use get_store_by_name(name, tenant_id=...) function instead
     
     def to_dict(self):
         created_at_iso = self.created_at.isoformat() if self.created_at else None
@@ -258,6 +350,7 @@ class EOD(db.Model):
         
         return {
             'id': str(self.id),
+            'tenant_id': self.tenant_id,
             'store_id': self.store_id,
             'report_date': self.report_date,
             'notes': self.notes,
@@ -354,34 +447,121 @@ def get_default_inventory_items():
 ]
 
 
+# ================== Tenant Functions ==================
+
+def get_tenant_by_id(tenant_id):
+    """Get a tenant by ID"""
+    tenant = Tenant.query.get(tenant_id)
+    return tenant.to_dict() if tenant else None
+
+
+def get_tenant_by_email(email):
+    """Get a tenant by email"""
+    tenant = Tenant.query.filter_by(email=email).first()
+    return tenant.to_dict(include_password=True) if tenant else None
+
+
+def create_tenant(company_name, email, password_hash, plan='basic', stripe_customer_id=None, stripe_subscription_id=None):
+    """Create a new tenant"""
+    # Check if email already exists
+    existing = Tenant.query.filter_by(email=email).first()
+    if existing:
+        raise ValueError(f"Tenant with email '{email}' already exists")
+    
+    # Set storage limits based on plan
+    plan_limits = {
+        'basic': 1073741824,      # 1GB
+        'standard': 10737418240,   # 10GB
+        'premium': 107374182400    # 100GB
+    }
+    max_storage = plan_limits.get(plan, 1073741824)
+    
+    tenant = Tenant(
+        company_name=company_name,
+        email=email,
+        password_hash=password_hash,
+        plan=plan,
+        max_storage_bytes=max_storage,
+        stripe_customer_id=stripe_customer_id,
+        stripe_subscription_id=stripe_subscription_id
+    )
+    db.session.add(tenant)
+    db.session.commit()
+    
+    return tenant.to_dict()
+
+
+def update_tenant_storage(tenant_id, additional_bytes):
+    """Update tenant storage usage"""
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        raise ValueError(f"Tenant with ID {tenant_id} not found")
+    
+    tenant.used_storage_bytes += additional_bytes
+    if tenant.used_storage_bytes < 0:
+        tenant.used_storage_bytes = 0
+    
+    db.session.commit()
+    return tenant.to_dict()
+
+
+def update_tenant_plan(tenant_id, plan, stripe_subscription_id=None):
+    """Update tenant plan and storage limits"""
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        raise ValueError(f"Tenant with ID {tenant_id} not found")
+    
+    plan_limits = {
+        'basic': 1073741824,      # 1GB
+        'standard': 10737418240,   # 10GB
+        'premium': 107374182400    # 100GB
+    }
+    
+    tenant.plan = plan
+    tenant.max_storage_bytes = plan_limits.get(plan, 1073741824)
+    if stripe_subscription_id:
+        tenant.stripe_subscription_id = stripe_subscription_id
+    
+    db.session.commit()
+    return tenant.to_dict()
+
+
 # ================== Manager Functions ==================
 
-def get_manager_by_username(username):
-    """Get a manager by username"""
-    manager = Manager.query.filter_by(username=username).first()
+def get_manager_by_username(username, tenant_id=None):
+    """Get a manager by username, optionally filtered by tenant_id"""
+    query = Manager.query.filter_by(username=username)
+    if tenant_id:
+        query = query.filter_by(tenant_id=tenant_id)
+    manager = query.first()
     return manager.to_dict(include_password=True) if manager else None
 
 
-def get_all_managers():
-    """Get all managers (excluding passwords)"""
-    managers = Manager.query.all()
+def get_all_managers(tenant_id=None):
+    """Get all managers (excluding passwords), optionally filtered by tenant_id"""
+    query = Manager.query
+    if tenant_id:
+        query = query.filter_by(tenant_id=tenant_id)
+    managers = query.all()
     return [m.to_dict() for m in managers]
 
 
-def create_manager(name, username, password):
+def create_manager(tenant_id, name, username, password, is_super_admin=False):
     """Create a new manager account"""
-    # Check if username already exists
-    existing = Manager.query.filter_by(username=username).first()
+    # Check if username already exists for this tenant
+    existing = Manager.query.filter_by(tenant_id=tenant_id, username=username).first()
     if existing:
-        raise ValueError(f"Manager username '{username}' already exists")
+        raise ValueError(f"Manager username '{username}' already exists for this tenant")
     
     # Hash the password
     password_hash = hash_password(password)
     
     manager = Manager(
+        tenant_id=tenant_id,
         name=name,
         username=username,
-        password=password_hash
+        password=password_hash,
+        is_super_admin=is_super_admin
     )
     db.session.add(manager)
     db.session.commit()
@@ -389,20 +569,20 @@ def create_manager(name, username, password):
     return manager.to_dict()
 
 
-def update_manager(username, name=None, new_username=None, password=None):
+def update_manager(tenant_id, username, name=None, new_username=None, password=None):
     """Update an existing manager account"""
     # Check if manager exists
-    manager = Manager.query.filter_by(username=username).first()
+    manager = Manager.query.filter_by(tenant_id=tenant_id, username=username).first()
     if not manager:
-        raise ValueError(f"Manager with username '{username}' not found")
+        raise ValueError(f"Manager with username '{username}' not found for this tenant")
     
     if name is not None:
         manager.name = name
     
     if new_username is not None:
-        # Check if new username is already taken by another manager
+        # Check if new username is already taken by another manager in the same tenant
         if new_username != username:
-            username_taken = Manager.query.filter_by(username=new_username).first()
+            username_taken = Manager.query.filter_by(tenant_id=tenant_id, username=new_username).first()
             if username_taken:
                 raise ValueError(f"Manager username '{new_username}' is already taken")
         manager.username = new_username
@@ -417,27 +597,27 @@ def update_manager(username, name=None, new_username=None, password=None):
 
 # ================== Store Functions ==================
 
-def create_store(name, username=None, password=None, total_boxes=0, manager_username=None, allowed_ip=None):
+def create_store(tenant_id, name, username=None, password=None, total_boxes=0, manager_username=None, allowed_ip=None):
     """Create a new store"""
-    # Check if store name already exists
-    existing_store = Store.query.filter_by(name=name).first()
+    # Check if store name already exists for this tenant
+    existing_store = Store.query.filter_by(tenant_id=tenant_id, name=name).first()
     if existing_store:
         existing_manager = existing_store.manager_username or "unknown"
-        raise ValueError(f"Store name '{name}' already exists. It was created by manager '{existing_manager}'. Store names must be unique across all managers.")
+        raise ValueError(f"Store name '{name}' already exists. It was created by manager '{existing_manager}'. Store names must be unique within a tenant.")
     
-    # Check if username already exists
+    # Check if username already exists for this tenant
     if username:
-        existing_by_username = Store.query.filter_by(username=username).first()
+        existing_by_username = Store.query.filter_by(tenant_id=tenant_id, username=username).first()
         if existing_by_username:
             raise ValueError(f"Store username '{username}' is already taken. Please choose a different username.")
     
     # Generate default username if not provided
     if username is None:
         username = name.lower().replace(" ", "")
-        # Check if generated username is already taken
+        # Check if generated username is already taken for this tenant
         counter = 1
         base_username = username
-        while Store.query.filter_by(username=username).first():
+        while Store.query.filter_by(tenant_id=tenant_id, username=username).first():
             username = f"{base_username}{counter}"
             counter += 1
     
@@ -449,6 +629,7 @@ def create_store(name, username=None, password=None, total_boxes=0, manager_user
     password_hash = hash_password(password)
     
     store = Store(
+        tenant_id=tenant_id,
         name=name,
         username=username,
         password=password_hash,
@@ -460,34 +641,42 @@ def create_store(name, username=None, password=None, total_boxes=0, manager_user
     db.session.commit()
     
     # Create default inventory items for this store
-    created_count = add_default_inventory_to_store(name)
+    created_count = add_default_inventory_to_store(tenant_id, name)
     print(f"✓ Created store '{name}' with {created_count} inventory items")
     
     return str(store.id)
 
 
-def get_store_by_username(username):
-    """Get a store by username"""
-    store = Store.query.filter_by(username=username).first()
+def get_store_by_username(username, tenant_id=None):
+    """Get a store by username, optionally filtered by tenant_id"""
+    query = Store.query.filter_by(username=username)
+    if tenant_id:
+        query = query.filter_by(tenant_id=tenant_id)
+    store = query.first()
     return store.to_dict(include_password=True) if store else None
 
 
-def get_store_by_name(name):
-    store = Store.query.filter_by(name=name).first()
-    return store
+def get_store_by_name(name, tenant_id=None):
+    """Get a store by name, optionally filtered by tenant_id"""
+    query = Store.query.filter_by(name=name)
+    if tenant_id:
+        query = query.filter_by(tenant_id=tenant_id)
+    return query.first()
 
-def get_stores(manager_username=None):
-    """Get stores, optionally filtered by manager_username"""
+def get_stores(tenant_id=None, manager_username=None):
+    """Get stores, optionally filtered by tenant_id and/or manager_username"""
+    query = Store.query
+    if tenant_id:
+        query = query.filter_by(tenant_id=tenant_id)
     if manager_username:
-        stores = Store.query.filter_by(manager_username=manager_username).all()
-    else:
-        stores = Store.query.all()
+        query = query.filter_by(manager_username=manager_username)
+    stores = query.all()
     return [s.to_dict() for s in stores]
 
 
-def update_store(name, new_name=None, username=None, password=None, total_boxes=None, allowed_ip=None):
+def update_store(tenant_id, name, new_name=None, username=None, password=None, total_boxes=None, allowed_ip=None):
     """Update a store's information"""
-    store = Store.query.filter_by(name=name).first()
+    store = Store.query.filter_by(tenant_id=tenant_id, name=name).first()
     if not store:
         return False
     
@@ -509,31 +698,31 @@ def update_store(name, new_name=None, username=None, password=None, total_boxes=
     # If the store name changed, update all related data
     if new_name and new_name != old_name:
         # Update inventory items
-        Inventory.query.filter_by(store_id=old_name).update({Inventory.store_id: new_name})
+        Inventory.query.filter_by(tenant_id=tenant_id, store_id=old_name).update({Inventory.store_id: new_name})
         
         # Update inventory history
-        InventoryHistory.query.filter_by(store_id=old_name).update({InventoryHistory.store_id: new_name})
+        InventoryHistory.query.filter_by(tenant_id=tenant_id, store_id=old_name).update({InventoryHistory.store_id: new_name})
         
         # Update EOD reports
-        EOD.query.filter_by(store_id=old_name).update({EOD.store_id: new_name})
+        EOD.query.filter_by(tenant_id=tenant_id, store_id=old_name).update({EOD.store_id: new_name})
         
         # Update timeclock entries
-        TimeClock.query.filter_by(store_id=old_name).update({TimeClock.store_id: new_name})
+        TimeClock.query.filter_by(tenant_id=tenant_id, store_id=old_name).update({TimeClock.store_id: new_name})
         
         db.session.commit()
     
     return True
 
 
-def delete_store(name):
+def delete_store(tenant_id, name):
     """Delete a store and all related data"""
-    store = Store.query.filter_by(name=name).first()
+    store = Store.query.filter_by(tenant_id=tenant_id, name=name).first()
     if not store:
         return False
     
     # SQLAlchemy will automatically delete related data due to cascade='all, delete-orphan'
     # But we also need to delete timeclock entries (no FK relationship)
-    TimeClock.query.filter_by(store_id=name).delete()
+    TimeClock.query.filter_by(tenant_id=tenant_id, store_id=name).delete()
     
     db.session.delete(store)
     db.session.commit()
@@ -545,9 +734,10 @@ def delete_store(name):
 
 # ================== Employee Functions ==================
 
-def create_employee(store_id, name, role=None, phone_number=None, hourly_pay=None):
+def create_employee(tenant_id, store_id, name, role=None, phone_number=None, hourly_pay=None):
     """Create a new employee"""
     employee = Employee(
+        tenant_id=tenant_id,
         store_id=store_id,
         name=name,
         role=role,
@@ -560,12 +750,14 @@ def create_employee(store_id, name, role=None, phone_number=None, hourly_pay=Non
     return str(employee.id)
 
 
-def get_employees(store_id=None):
-    """Get employees, optionally filtered by store_id"""
+def get_employees(tenant_id=None, store_id=None):
+    """Get employees, optionally filtered by tenant_id and/or store_id"""
+    query = Employee.query
+    if tenant_id:
+        query = query.filter_by(tenant_id=tenant_id)
     if store_id:
-        employees = Employee.query.filter_by(store_id=store_id).all()
-    else:
-        employees = Employee.query.all()
+        query = query.filter_by(store_id=store_id)
+    employees = query.all()
     return [e.to_dict() for e in employees]
 
 
@@ -584,9 +776,10 @@ def delete_employee(employee_id):
 
 # ================== Inventory Functions ==================
 
-def add_inventory_item(store_id, sku, name, quantity=0):
+def add_inventory_item(tenant_id, store_id, sku, name, quantity=0):
     """Add an inventory item"""
     item = Inventory(
+        tenant_id=tenant_id,
         store_id=store_id,
         sku=sku,
         name=name,
@@ -597,16 +790,16 @@ def add_inventory_item(store_id, sku, name, quantity=0):
     return str(item.id)
 
 
-def update_inventory_item(store_id, sku=None, item_id=None, quantity=None, name=None, new_sku=None):
+def update_inventory_item(tenant_id, store_id, sku=None, item_id=None, quantity=None, name=None, new_sku=None):
     """Update an inventory item"""
     # Find the item
     if item_id:
         try:
-            item = Inventory.query.get(int(item_id))
+            item = Inventory.query.filter_by(tenant_id=tenant_id, id=int(item_id)).first()
         except (ValueError, TypeError):
             return False
     elif store_id and sku:
-        item = Inventory.query.filter_by(store_id=store_id, sku=sku).first()
+        item = Inventory.query.filter_by(tenant_id=tenant_id, store_id=store_id, sku=sku).first()
     else:
         return False
 
@@ -615,7 +808,7 @@ def update_inventory_item(store_id, sku=None, item_id=None, quantity=None, name=
     
     # If SKU is changing, check if new SKU already exists
     if new_sku is not None:
-        existing = Inventory.query.filter_by(store_id=store_id, sku=new_sku).filter(Inventory.id != item.id).first()
+        existing = Inventory.query.filter_by(tenant_id=tenant_id, store_id=store_id, sku=new_sku).filter(Inventory.id != item.id).first()
         if existing:
             return False
         item.sku = new_sku
@@ -629,9 +822,9 @@ def update_inventory_item(store_id, sku=None, item_id=None, quantity=None, name=
     return True
 
 
-def delete_inventory_item(store_id, sku):
+def delete_inventory_item(tenant_id, store_id, sku):
     """Delete an inventory item"""
-    item = Inventory.query.filter_by(store_id=store_id, sku=sku).first()
+    item = Inventory.query.filter_by(tenant_id=tenant_id, store_id=store_id, sku=sku).first()
     if not item:
         return False
     db.session.delete(item)
@@ -639,16 +832,18 @@ def delete_inventory_item(store_id, sku):
     return True
 
 
-def get_inventory(store_id=None):
-    """Get inventory items"""
+def get_inventory(tenant_id=None, store_id=None):
+    """Get inventory items, optionally filtered by tenant_id and/or store_id"""
+    query = Inventory.query
+    if tenant_id:
+        query = query.filter_by(tenant_id=tenant_id)
     if store_id:
-        items = Inventory.query.filter_by(store_id=store_id).all()
-    else:
-        items = Inventory.query.all()
+        query = query.filter_by(store_id=store_id)
+    items = query.all()
     return [i.to_dict() for i in items]
 
 
-def add_default_inventory_to_store(store_name):
+def add_default_inventory_to_store(tenant_id, store_name):
     """
     Add default inventory items to a store.
     Checks for existing items to avoid duplicates.
@@ -658,14 +853,16 @@ def add_default_inventory_to_store(store_name):
     created_count = 0
     
     for item in default_items:
-        # Check if this store_id + sku combination already exists
+        # Check if this tenant_id + store_id + sku combination already exists
         existing_item = Inventory.query.filter_by(
+            tenant_id=tenant_id,
             store_id=store_name,
             sku=item["sku"]
         ).first()
         
         if not existing_item:
             inventory_item = Inventory(
+                tenant_id=tenant_id,
                 store_id=store_name,
                 sku=item["sku"],
                 name=item["name"],
@@ -685,9 +882,10 @@ def add_default_inventory_to_store(store_name):
 
 # ================== EOD Functions ==================
 
-def create_eod(store_id, report_date, notes=None, cash_amount=0, credit_amount=0, qpay_amount=0, boxes_count=0, total1=0, submitted_by=None):
+def create_eod(tenant_id, store_id, report_date, notes=None, cash_amount=0, credit_amount=0, qpay_amount=0, boxes_count=0, total1=0, submitted_by=None):
     """Create an EOD report"""
     eod = EOD(
+        tenant_id=tenant_id,
         store_id=store_id,
         report_date=report_date,
         notes=notes or "",
@@ -703,12 +901,14 @@ def create_eod(store_id, report_date, notes=None, cash_amount=0, credit_amount=0
     return str(eod.id)
 
 
-def get_eods(store_id=None):
-    """Get EOD reports"""
+def get_eods(tenant_id=None, store_id=None):
+    """Get EOD reports, optionally filtered by tenant_id and/or store_id"""
+    query = EOD.query
+    if tenant_id:
+        query = query.filter_by(tenant_id=tenant_id)
     if store_id:
-        eods = EOD.query.filter_by(store_id=store_id).order_by(EOD.report_date.desc()).all()
-    else:
-        eods = EOD.query.order_by(EOD.report_date.desc()).all()
+        query = query.filter_by(store_id=store_id)
+    eods = query.order_by(EOD.report_date.desc()).all()
     
     results = []
     for eod in eods:
@@ -717,6 +917,7 @@ def get_eods(store_id=None):
         # Get employees who worked on this report date
         report_date = eod.report_date
         store = eod.store_id
+        tenant_id = eod.tenant_id
         if report_date and store:
             try:
                 from datetime import datetime as dt, timedelta
@@ -724,8 +925,9 @@ def get_eods(store_id=None):
                 day_start = report_dt.replace(hour=0, minute=0, second=0, microsecond=0)
                 day_end = day_start + timedelta(days=1)
                 
-                # Find all timeclock entries for this store on this date
+                # Find all timeclock entries for this tenant/store on this date
                 entries = TimeClock.query.filter(
+                    TimeClock.tenant_id == tenant_id,
                     TimeClock.store_id == store,
                     TimeClock.clock_in >= day_start,
                     TimeClock.clock_in < day_end
